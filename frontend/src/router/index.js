@@ -10,6 +10,7 @@ import CustomerMain from '../pages/customer/CustomerMain.vue'
 import OwnerMain from '../pages/owner/OwnerMain.vue'
 import DriverMain from '../pages/driver/DriverMain.vue'
 
+import Stores from '../pages/customer/Stores.vue'
 
 // 라우트 경로 추가
 const routes = [
@@ -21,6 +22,10 @@ const routes = [
   { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
   { path: '/driver-main', component: DriverMain, meta: { role: 'RIDER' } }
   //{ path: '/dashboard', component: Dashboard }, //로그인후 이동하는 임시 페이지
+  {
+    path: '/customer',
+    children: [{ path: 'stores', component: Stores }],
+  },
 ]
 
 const router = createRouter({
