@@ -28,6 +28,7 @@ import { ref } from 'vue'
 import StoreSearchBar from '@/components/customer/StoreSearchBar.vue'
 import StoreCategoryCard from '@/components/customer/StoreCategoryCard.vue'
 import StoreCard from '@/components/customer/StoreCard.vue'
+import { mocks } from './mock'
 
 export default {
   name: 'Stores',
@@ -38,42 +39,8 @@ export default {
   },
   setup() {
     const searchQuery = ref('')
-    const stores = ref([
-      {
-        id: '1',
-        name: '맛있는 치킨집',
-        category: '치킨',
-        rating: 4.5,
-        deliveryTime: '25-35분',
-        deliveryFee: 2000,
-        description: '바삭하고 맛있는 치킨 전문점',
-      },
-      {
-        id: '2',
-        name: '신선한 피자',
-        category: '피자',
-        rating: 4.3,
-        deliveryTime: '20-30분',
-        deliveryFee: 1500,
-        description: '신선한 재료로 만든 수제 피자',
-      },
-      {
-        id: '3',
-        name: '한식당 고향',
-        category: '한식',
-        rating: 4.7,
-        deliveryTime: '30-40분',
-        deliveryFee: 3000,
-        description: '정통 한식의 맛을 그대로',
-      },
-    ])
-
-    const categories = ref([
-      { id: 1, name: '치킨' },
-      { id: 2, name: '피자' },
-      { id: 3, name: '한식' },
-      { id: 4, name: '중식' },
-    ])
+    const stores = ref(mocks.stores)
+    const categories = ref(mocks.categories)
 
     return {
       searchQuery,

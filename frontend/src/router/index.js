@@ -11,6 +11,8 @@ import OwnerMain from '../pages/owner/OwnerMain.vue'
 import DriverMain from '../pages/driver/DriverMain.vue'
 
 import Stores from '../pages/customer/Stores.vue'
+import StoreList from '../pages/customer/StoreList.vue'
+import StoreDetail from '../pages/customer/StoreDetail.vue'
 
 // 라우트 경로 추가
 const routes = [
@@ -20,11 +22,14 @@ const routes = [
   { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
   { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
   { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
-  { path: '/driver-main', component: DriverMain, meta: { role: 'RIDER' } }
+  { path: '/driver-main', component: DriverMain, meta: { role: 'RIDER' } },
   //{ path: '/dashboard', component: Dashboard }, //로그인후 이동하는 임시 페이지
   {
     path: '/customer',
-    children: [{ path: 'stores', component: Stores }],
+    children: [
+      { path: 'stores', component: StoreList },
+      { path: 'stores/:id', component: StoreDetail },
+    ],
   },
 ]
 

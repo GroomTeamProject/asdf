@@ -21,6 +21,8 @@
 </template>
 
 <script>
+import { useRouter } from 'vue-router'
+
 export default {
   name: 'StoreCard',
   props: {
@@ -30,8 +32,10 @@ export default {
     },
   },
   setup(props) {
+    const router = useRouter()
+
     const onClick = () => {
-      console.log('Selected store:', props.store.id, props.store.name)
+      router.push(`/customer/stores/${props.store.id}`)
     }
 
     return {

@@ -1,0 +1,60 @@
+export const mocks = {
+  stores: [
+    {
+      id: '1',
+      name: '맛있는 치킨집',
+      category: '치킨',
+      rating: 4.5,
+      deliveryTime: '25-35분',
+      deliveryFee: 2000,
+      description: '바삭하고 맛있는 치킨 전문점',
+    },
+    {
+      id: '2',
+      name: '신선한 피자',
+      category: '피자',
+      rating: 4.3,
+      deliveryTime: '20-30분',
+      deliveryFee: 1500,
+      description: '신선한 재료로 만든 수제 피자',
+    },
+    {
+      id: '3',
+      name: '한식당 고향',
+      category: '한식',
+      rating: 4.7,
+      deliveryTime: '30-40분',
+      deliveryFee: 3000,
+      description: '정통 한식의 맛을 그대로',
+    },
+  ],
+  categories: [
+    { id: 1, name: '치킨' },
+    { id: 2, name: '피자' },
+    { id: 3, name: '한식' },
+    { id: 4, name: '중식' },
+  ],
+  menuItems: [
+    {
+      id: '1',
+      name: '후라이드 치킨',
+      description: '바삭바삭한 클래식 후라이드',
+      price: 18000,
+      category: '치킨',
+    },
+    {
+      id: '2',
+      name: '양념 치킨',
+      description: '달콤매콤한 양념치킨',
+      price: 20000,
+      category: '치킨',
+    },
+    {
+      id: '3',
+      name: '치킨무',
+      description: '아삭한 치킨무',
+      price: 2000,
+      category: '사이드',
+    },
+  ],
+}
