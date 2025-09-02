@@ -5,7 +5,7 @@
       <StoreInfo :store="selectedStore" />
 
       <!-- 메뉴 -->
-      <StoreMenu :menuItems="menuItems" @add-to-cart="addToCart" />
+      <StoreMenu :menuItems="menuItems" :storeId="storeId" @add-to-cart="addToCart" />
     </main>
 
     <!-- 장바구니/주문  버튼 -->
@@ -16,9 +16,9 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import StoreInfo from '@/components/customer/StoreInfo.vue'
-import StoreMenu from '@/components/customer/StoreMenu.vue'
-import StoreCartButton from '@/components/customer/StoreCartButton.vue'
+import StoreInfo from '@/components/customer/storeDetail/StoreInfo.vue'
+import StoreMenu from '@/components/customer/storeDetail/StoreMenu.vue'
+import StoreCartButton from '@/components/customer/storeDetail/StoreCartButton.vue'
 import { mocks } from './mock'
 
 export default {
@@ -72,6 +72,7 @@ export default {
       menuItems,
       cart,
       addToCart,
+      storeId: route.params.id,
     }
   },
 }

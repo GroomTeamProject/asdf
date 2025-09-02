@@ -25,9 +25,9 @@
 
 <script>
 import { ref } from 'vue'
-import StoreSearchBar from '@/components/customer/StoreSearchBar.vue'
-import StoreCategoryCard from '@/components/customer/StoreCategoryCard.vue'
-import StoreCard from '@/components/customer/StoreCard.vue'
+import StoreSearchBar from '@/components/customer/storeList/StoreSearchBar.vue'
+import StoreCategoryCard from '@/components/customer/storeList/StoreCategoryCard.vue'
+import StoreCard from '@/components/customer/storeList/StoreCard.vue'
 import { mocks } from './mock'
 
 export default {
