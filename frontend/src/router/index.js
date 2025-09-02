@@ -16,6 +16,7 @@ import CustomerLayout from '../layouts/customer/CustomerLayout.vue'
 import StoreList from '../pages/customer/StoreList.vue'
 import StoreDetail from '../pages/customer/StoreDetail.vue'
 import MenuDetail from '../pages/customer/MenuDetail.vue'
+import Cart from '../pages/customer/Cart.vue'
 
 // 라우트 경로 추가
 const routes = [
