@@ -15,6 +15,7 @@ import DefaultLayout from '../layouts/DefaultLayout.vue'
 import CustomerLayout from '../layouts/customer/CustomerLayout.vue'
 import StoreList from '../pages/customer/StoreList.vue'
 import StoreDetail from '../pages/customer/StoreDetail.vue'
+import MenuDetail from '../pages/customer/MenuDetail.vue'
 
 // 라우트 경로 추가
 const routes = [
@@ -37,6 +38,8 @@ const routes = [
     children: [
       { path: 'stores', component: StoreList },
       { path: 'stores/:id', component: StoreDetail },
+      { path: 'stores/:id/menu/:menuId', component: MenuDetail },
+      { path: 'cart', component: Cart },
     ],
   },
 ]
