@@ -5,11 +5,11 @@
       <StoreInfo :store="selectedStore" />
 
       <!-- 메뉴 -->
-      <StoreMenu :menuItems="menuItems" :storeId="storeId" @add-to-cart="addToCart" />
+      <StoreMenu :menuItems="menuItems" :storeId="storeId" />
     </main>
 
     <!-- 장바구니/주문  버튼 -->
-    <StoreCartButton :cart="cart" />
+    <StoreCartButton />
   </div>
 </template>
 
@@ -17,48 +17,28 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import StoreInfo from '@/components/customer/storeDetail/StoreInfo.vue'
-import StoreMenu from '@/components/customer/storeDetail/StoreMenu.vue'
+import StoreMenuCard from '@/components/customer/storeDetail/StoreMenuCard.vue'
 import StoreCartButton from '@/components/customer/storeDetail/StoreCartButton.vue'
-import { mocks } from './mock'
+import { customerApi } from '@/apis/customerApi'
 
 export default {
   name: 'StoreDetail',
   components: {
     StoreInfo,
-    StoreMenu,
+    StoreMenu: StoreMenuCard,
     StoreCartButton,
   },
   setup() {
     const router = useRouter()
     const route = useRoute()
-
-    // 반응형 데이터
+    
     const selectedStore = ref(null)
-    const menuItems = ref(mocks.menuItems)
+    const menuItems = ref([])
+    const storeId = ref(route.params.id)
 
-    // 장바구니 데이터
-    const cart = ref(JSON.parse(localStorage.getItem('cart') || '[]'))
-
-    const addToCart = (itemId) => {
-      const item = menuItems.value.find((m) => m.id === itemId)
-      if (!item) return
-
-      const existingItem = cart.value.find((cartItem) => cartItem.id === itemId)
-
-      if (existingItem) {
-        existingItem.quantity += 1
-      } else {
-        cart.value.push({ ...item, quantity: 1 })
-      }
-
-      // localStorage 업데이트
-      localStorage.setItem('cart', JSON.stringify(cart.value))
-    }
-
-    // 페이지 초기화
-    onMounted(() => {
-      const storeId = route.params.id
-      selectedStore.value = mocks.stores.find((store) => store.id === storeId)
+    onMounted(async () => {
+      selectedStore.value = await customerApi.getStoreById(storeId.value)
+      menuItems.value = await customerApi.getMenusByStoreId(storeId.value)
 
       if (!selectedStore.value) {
         alert('음식점 정보를 찾을 수 없습니다.')
@@ -70,8 +50,6 @@ export default {
     return {
       selectedStore,
       menuItems,
-      cart,
-      addToCart,
       storeId: route.params.id,
     }
   },

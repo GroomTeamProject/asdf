@@ -10,4 +10,3 @@ export default {
   name: 'CartEmpty',
 }
 </script>
-wjdrksms

@@ -29,9 +29,15 @@
 
         <button
           @click="addToCart"
-          class="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:shadow-lg transition-all duration-200"
+          :disabled="!allRequiredOptionsSelected"
+          :class="[
+            'w-full h-12 text-base font-semibold rounded-lg transition-all duration-200',
+            allRequiredOptionsSelected
+              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg cursor-pointer'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          ]"
         >
-          장바구니에 담기
+          {{ allRequiredOptionsSelected ? '장바구니에 담기' : '필수 옵션을 선택해주세요' }}
         </button>
       </div>
     </div>
@@ -42,7 +48,7 @@
 export default {
   name: 'QuantitySelector',
   props: {
-    basePrice: {
+    price: {
       type: Number,
       required: true
     },
@@ -67,17 +73,36 @@ export default {
   },
   computed: {
     totalPrice() {
-      let total = this.basePrice * this.quantity
+      let total = this.price * this.quantity
 
       // 선택된 옵션들의 가격 추가
-      Object.values(this.selectedOptions).forEach((optionId) => {
-        const option = this.menuOptions.find((opt) => opt.id === optionId)
-        if (option) {
-          total += option.price * this.quantity
-        }
+      Object.values(this.selectedOptions).forEach((optionItemId) => {
+        // 새로운 구조에서는 menuOptions의 items에서 찾아야 함
+        this.menuOptions.forEach(option => {
+          const optionItem = option.items?.find(item => item.id === optionItemId)
+          if (optionItem) {
+            total += optionItem.additionalPrice * this.quantity
+          }
+        })
       })
 
       return total
+    },
+    // 필수 옵션이 모두 선택되었는지 확인
+    allRequiredOptionsSelected() {
+      const requiredOptions = this.menuOptions.filter(option => option.isRequired)
+      
+      return requiredOptions.every(option => {
+        return this.selectedOptions[option.id] !== undefined
+      })
+    },
+    // 미선택된 필수 옵션들
+    missingRequiredOptions() {
+      const requiredOptions = this.menuOptions.filter(option => option.isRequired)
+      
+      return requiredOptions.filter(option => {
+        return this.selectedOptions[option.id] === undefined
+      }).map(option => option.name)
     }
   },
   methods: {
@@ -90,6 +115,13 @@ export default {
       }
     },
     addToCart() {
+      // 필수 옵션 검증
+      if (!this.allRequiredOptionsSelected) {
+        const missingOptions = this.missingRequiredOptions.join(', ')
+        alert(`다음 필수 옵션을 선택해주세요: ${missingOptions}`)
+        return
+      }
+
       const cartItem = {
         menuId: this.menuId,
         quantity: this.quantity,

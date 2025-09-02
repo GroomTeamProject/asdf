@@ -7,8 +7,14 @@
 
     <!-- 메뉴 태그 -->
     <div class="flex flex-wrap gap-2">
-      <span v-for="tag in menuItem.tags" :key="tag" class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
-        {{ tag }}
+      <span v-if="menuItem.isPopular" class="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full font-medium">
+        인기
+      </span>
+      <span v-if="menuItem.isRecommended" class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+        추천
+      </span>
+      <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
+        {{ menuItem.status === 'AVAILABLE' ? '주문가능' : '품절' }}
       </span>
     </div>
 
@@ -23,18 +29,8 @@
       </p>
     </div>
 
-    <!-- 메뉴 추가정보 -->
-    <div class="flex items-center gap-4 text-sm">
-      <div class="flex items-center gap-1">
-        <span class="text-yellow-400 text-lg">⭐</span>
-        <span class="font-medium">{{ menuItem.rating }}</span>
-        <span class="text-gray-500">({{ menuItem.reviewCount }})</span>
-      </div>
-      <div class="text-gray-500">조리시간: {{ menuItem.preparationTime }}</div>
-    </div>
-
     <!-- 가격 -->
-    <div class="text-2xl font-bold text-blue-600">{{ menuItem.basePrice.toLocaleString() }}원</div>
+    <div class="text-2xl font-bold text-blue-600">{{ menuItem.price?.toLocaleString() }}원</div>
   </div>
 </template>
 

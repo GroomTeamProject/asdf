@@ -12,7 +12,7 @@
         <i data-lucide="star" class="w-4 h-4 text-gray-600"></i>
         <span>{{ store.rating }}</span>
         <i data-lucide="clock" class="w-4 h-4 ml-2 text-gray-600"></i>
-        <span>{{ store.deliveryTime }}</span>
+        <span>{{ store.deliveryTimeMin }}-{{ store.deliveryTimeMax }}분</span>
       </div>
       <p class="text-sm text-gray-600">{{ store.description }}</p>
       <p class="text-sm mt-2 text-gray-800">배달비 {{ store.deliveryFee.toLocaleString() }}원</p>

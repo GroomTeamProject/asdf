@@ -24,11 +24,11 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import StoreSearchBar from '@/components/customer/storeList/StoreSearchBar.vue'
 import StoreCategoryCard from '@/components/customer/storeList/StoreCategoryCard.vue'
 import StoreCard from '@/components/customer/storeList/StoreCard.vue'
-import { mocks } from './mock'
+import { customerApi } from '@/apis/customerApi'
 
 export default {
   name: 'Stores',
@@ -39,8 +39,13 @@ export default {
   },
   setup() {
     const searchQuery = ref('')
-    const stores = ref(mocks.stores)
-    const categories = ref(mocks.categories)
+    const stores = ref([])
+    const categories = ref([])
+
+    onMounted(async () => {
+      stores.value = await customerApi.getStores()
+      categories.value = await customerApi.getCategories()
+    })
 
     return {
       searchQuery,
