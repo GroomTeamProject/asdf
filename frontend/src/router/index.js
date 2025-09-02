@@ -11,6 +11,8 @@ import OwnerMain from '../pages/owner/OwnerMain.vue'
 import DriverMain from '../pages/driver/DriverMain.vue'
 
 import Stores from '../pages/customer/Stores.vue'
+import DefaultLayout from '../layouts/DefaultLayout.vue'
+import CustomerLayout from '../layouts/customer/CustomerLayout.vue'
 import StoreList from '../pages/customer/StoreList.vue'
 import StoreDetail from '../pages/customer/StoreDetail.vue'
 
@@ -25,7 +27,13 @@ const routes = [
   { path: '/driver-main', component: DriverMain, meta: { role: 'RIDER' } },
   //{ path: '/dashboard', component: Dashboard }, //로그인후 이동하는 임시 페이지
   {
+    path: '/',
+    component: DefaultLayout,
+    children: [{ path: '', component: Home }],
+  },
+  {
     path: '/customer',
+    component: CustomerLayout,
     children: [
       { path: 'stores', component: StoreList },
       { path: 'stores/:id', component: StoreDetail },
