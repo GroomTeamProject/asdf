@@ -10,7 +10,7 @@
       </div>
 
       <!-- 주문 정보 카드 -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">주문 정보</h2>
         
         <div class="space-y-4">
@@ -41,7 +41,7 @@
       </div>
 
       <!-- 배달 정보 카드 -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">배달 정보</h2>
         
         <div class="space-y-4">

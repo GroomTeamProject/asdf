@@ -1,31 +1,31 @@
 <template>
-  <div class="bg-white border-b border-gray-200 p-4">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-4">
     <h3 class="font-medium text-gray-800 mb-3">요청사항</h3>
     
     <div class="space-y-3">
       <!-- 빠른 선택 버튼들 -->
       <div class="flex flex-wrap gap-2">
-        <button
-          v-for="memo in quickMemos"
-          :key="memo"
-          @click="selectQuickMemo(memo)"
-          :class="[
-            'px-3 py-2 text-sm rounded-lg border transition-colors',
-            selectedMemo === memo
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300'
-          ]"
-        >
+                  <button
+            v-for="memo in quickMemos"
+            :key="memo"
+            @click="selectQuickMemo(memo)"
+            :class="[
+              'px-3 py-2 text-sm rounded-lg border transition-all duration-200',
+              selectedMemo === memo
+                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-blue-300 hover:bg-blue-50'
+            ]"
+          >
           {{ memo }}
         </button>
       </div>
       
       <!-- 직접 입력 -->
-      <textarea
-        v-model="customMemo"
-        placeholder="직접 입력하거나 위 버튼을 선택해주세요"
-        class="w-full h-20 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      ></textarea>
+              <textarea
+          v-model="customMemo"
+          placeholder="직접 입력하거나 위 버튼을 선택해주세요"
+          class="w-full h-20 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400 transition-colors duration-200"
+        ></textarea>
     </div>
   </div>
 </template>

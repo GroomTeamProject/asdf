@@ -4,9 +4,9 @@
       @click="handlePayment"
       :disabled="!canSubmitOrder"
       :class="[
-        'w-full h-14 text-lg font-semibold rounded-lg transition-all duration-200',
+        'w-full h-14 text-lg font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
         canSubmitOrder
-          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg cursor-pointer'
+          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg cursor-pointer hover:from-blue-700 hover:to-blue-800'
           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
       ]"
     >

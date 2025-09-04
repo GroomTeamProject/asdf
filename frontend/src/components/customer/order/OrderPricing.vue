@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white border-b border-gray-200 p-4">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-4">
     <h3 class="font-medium text-gray-800 mb-3">주문금액</h3>
     
     <div class="space-y-2">

@@ -1,11 +1,11 @@
 <template>
-  <div class="bg-white border-b border-gray-200 p-4">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-4">
     <div class="flex items-center justify-between">
       <h3 class="font-medium text-gray-800">결제수단</h3>
-      <button
-        @click="changePaymentMethod"
-        class="text-blue-600 text-sm hover:bg-blue-50 px-2 py-1 rounded"
-      >
+              <button
+          @click="changePaymentMethod"
+          class="text-blue-600 text-sm hover:bg-blue-50 px-2 py-1 rounded transition-colors duration-200"
+        >
         변경
       </button>
     </div>

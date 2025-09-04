@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl mx-auto bg-gray-50 min-h-screen">
+  <div class="max-w-2xl mx-auto bg-gray-100 min-h-screen">
     <!-- 배달 정보 -->
     <DeliveryInfo
       :delivery-address="deliveryAddress"
