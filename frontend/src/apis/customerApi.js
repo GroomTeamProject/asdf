@@ -1,4 +1,5 @@
 import { mocks } from './mock'
+import { POST } from '@/libs/ajax'
 
 export const customerApi = {
   // TODO: 실제 API 요청
@@ -30,5 +31,16 @@ export const customerApi = {
       ...option,
       items: mocks.menuOptionItems.filter(item => item.optionId === option.id && item.isActive)
     }))
+  },
+  
+  // 주문 생성
+  createOrder: async (orderData) => {
+    try {
+      const result = await POST('/api/customers/orders', orderData)
+      return result
+    } catch (error) {
+      console.error('주문 생성 실패:', error)
+      throw error
+    }
   },
 }
