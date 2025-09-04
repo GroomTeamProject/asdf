@@ -66,4 +66,3 @@ html {
   @apply border-2 border-gray-300 bg-white;
 }
 </style>
->>>>>>> feature/login
