@@ -90,18 +90,58 @@ export class OrderService {
     return cartService.removeMenuFromCart(item._key || item.id)
   }
 
-  // 주문 데이터 구성
+  // 주문 데이터 구성 (백엔드 스키마에 맞춤)
   buildOrderData(orderItems, totalAmount, deliveryFee, discountAmount, finalAmount, orderMemo, deliveryAddress, phoneNumber, paymentMethod) {
+    // 주문 번호 생성 (임시)
+    const orderNumber = 'ORD-' + Date.now().toString().slice(-8)
+    
+    // 주문 아이템들을 백엔드 스키마에 맞게 변환
+    const orderItemsData = orderItems.map(item => {
+      // 가게별로 그룹화된 아이템들을 평면화
+      return item.items.map(cartItem => {
+        const orderItem = {
+          menu_id: cartItem.id,
+          menu_name: cartItem.name,
+          menu_price: cartItem.price,
+          quantity: cartItem.quantity,
+          total_price: cartItem.totalPrice || cartItem.price * cartItem.quantity,
+          options: []
+        }
+        
+        // 선택된 옵션들을 백엔드 스키마에 맞게 변환
+        if (cartItem.selectedOptions && cartItem.menuOptions) {
+          Object.entries(cartItem.selectedOptions).forEach(([optionGroupId, selectedItemId]) => {
+            const optionGroup = cartItem.menuOptions.find(opt => opt.id == optionGroupId)
+            if (optionGroup) {
+              const selectedItem = optionGroup.items?.find(item => item.id == selectedItemId)
+              if (selectedItem) {
+                orderItem.options.push({
+                  option_name: optionGroup.name,
+                  option_item_name: selectedItem.name,
+                  additional_price: selectedItem.additionalPrice || 0
+                })
+              }
+            }
+          })
+        }
+        
+        return orderItem
+      })
+    }).flat() // 중첩된 배열을 평면화
+    
     return {
-      items: orderItems,
-      totalAmount,
-      deliveryFee,
-      discountAmount,
-      finalAmount,
-      orderMemo,
-      deliveryAddress,
-      phoneNumber,
-      paymentMethod,
+      order_number: orderNumber,
+      user_id: 1, // TODO: 실제 사용자 ID로 교체
+      store_id: orderItems[0]?.storeId || 1, // TODO: 실제 가게 ID로 교체
+      delivery_address: deliveryAddress,
+      delivery_detail_address: '', // TODO: 상세 주소 필드 추가 필요
+      phone: phoneNumber,
+      order_memo: orderMemo,
+      menu_total_amount: totalAmount,
+      delivery_fee: deliveryFee,
+      discount_amount: discountAmount,
+      total_amount: finalAmount,
+      order_items: orderItemsData
     }
   }
 
@@ -111,12 +151,35 @@ export class OrderService {
       // TODO: 실제 주문 API 호출
       console.log('주문 데이터:', orderData)
       
-      // 임시로 성공 처리
+      // 백엔드 API 호출 구조 (실제 구현 시 사용)
+      /*
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // TODO: 인증 토큰 추가
+        },
+        body: JSON.stringify(orderData)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      return {
+        success: true,
+        orderNumber: result.order_number,
+        message: '주문이 성공적으로 접수되었습니다!'
+      }
+      */
+      
+      // 임시로 성공 처리 (개발용)
       return new Promise((resolve) => {
         setTimeout(() => {
           resolve({
             success: true,
-            orderNumber: 'ORD-' + Date.now().toString().slice(-6),
+            orderNumber: orderData.order_number,
             message: '주문이 성공적으로 접수되었습니다!'
           })
         }, 1000)
