@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg p-6 shadow-sm">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
     <h2 class="text-lg font-semibold text-gray-800 mb-4">옵션 선택</h2>
 
     <!-- 동적 옵션 그룹들 -->
@@ -16,7 +16,7 @@
         <div
           v-for="item in optionGroup.items"
           :key="item.id"
-          class="option-item p-3 border rounded-lg transition-all duration-200 cursor-pointer"
+          class="option-item p-3 border rounded-lg transition-all duration-200 cursor-pointer hover:shadow-sm"
           :class="getOptionItemClass(optionGroup.id, item.id, optionGroup.name)"
           @click="updateOption(optionGroup.id, item.id)"
         >

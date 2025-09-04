@@ -1,12 +1,12 @@
 <template>
-  <div class="bg-white rounded-lg p-6 shadow-sm">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
     <div class="space-y-4">
       <div>
         <h3 class="text-lg font-semibold text-gray-800 mb-3">수량</h3>
         <div class="flex items-center gap-4">
           <button
             @click="decreaseQuantity"
-            class="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+            class="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
             :disabled="quantity <= 1"
           >
             <span class="text-gray-600 text-lg">-</span>
@@ -14,7 +14,7 @@
           <span class="text-xl font-semibold text-gray-800 min-w-[3rem] text-center">{{ quantity }}</span>
           <button
             @click="increaseQuantity"
-            class="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+            class="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
           >
             <span class="text-gray-600 text-lg">+</span>
           </button>
@@ -31,9 +31,9 @@
           @click="addToCart"
           :disabled="!allRequiredOptionsSelected"
           :class="[
-            'w-full h-12 text-base font-semibold rounded-lg transition-all duration-200',
+            'w-full h-12 text-base font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
             allRequiredOptionsSelected
-              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg cursor-pointer'
+              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg cursor-pointer hover:from-blue-700 hover:to-blue-800'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           ]"
         >
