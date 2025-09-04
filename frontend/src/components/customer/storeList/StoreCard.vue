@@ -1,7 +1,7 @@
 <template>
   <div
     @click="onClick"
-    class="cursor-pointer border-2 border-gray-400 hover:bg-gray-200 transition-colors bg-white rounded-lg overflow-hidden"
+    class="cursor-pointer bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
   >
     <div class="image-placeholder aspect-video w-full">
       <span>IMAGE</span>

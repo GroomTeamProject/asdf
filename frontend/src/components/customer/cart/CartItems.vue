@@ -3,7 +3,7 @@
     <!-- 가게별로 그룹화해서 표시 -->
     <div v-for="(storeGroup, storeId) in groupedByStore" :key="storeId" class="space-y-4">
       <!-- 가게 헤더 -->
-      <div class="bg-white border-2 border-gray-400 rounded-lg">
+      <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 rounded-t-lg">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -18,7 +18,7 @@
         
         <!-- 해당 가게의 메뉴들 -->
         <div class="p-4 space-y-4">
-          <div v-for="item in storeGroup.items" :key="item._key || item.id" class="border border-gray-200 rounded-lg">
+          <div v-for="item in storeGroup.items" :key="item._key || item.id" class="border border-gray-200 rounded-lg bg-gray-50">
             <div class="p-4">
               <div class="flex items-center gap-4">
                 <div class="image-placeholder w-16 h-16">
@@ -47,14 +47,14 @@
                 <div class="flex items-center gap-2">
                   <button
                     @click="updateQuantity(item._key || item.id, item.quantity - 1)"
-                    class="border border-gray-400 text-gray-700 w-8 h-8 rounded flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    class="border border-gray-300 text-gray-700 w-8 h-8 rounded flex items-center justify-center hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
                   >
                     <i data-lucide="minus" class="w-4 h-4"></i>
                   </button>
                   <span class="w-8 text-center text-gray-800">{{ item.quantity }}</span>
                   <button
                     @click="updateQuantity(item._key || item.id, item.quantity + 1)"
-                    class="border border-gray-400 text-gray-700 w-8 h-8 rounded flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    class="border border-gray-300 text-gray-700 w-8 h-8 rounded flex items-center justify-center hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
                   >
                     <i data-lucide="plus" class="w-4 h-4"></i>
                   </button>

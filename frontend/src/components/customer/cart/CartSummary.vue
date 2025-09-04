@@ -1,5 +1,5 @@
 <template>
-  <div class="border-2 border-gray-400 bg-white rounded-lg mt-6">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm mt-6">
     <div class="p-4">
       <div class="flex justify-between items-center mb-4">
         <span class="text-gray-800">총 주문 금액</span>
@@ -7,7 +7,7 @@
       </div>
       <button
         @click="placeOrder"
-        class="w-full h-12 bg-gray-600 text-white border-2 border-gray-800 hover:bg-gray-700 rounded-md transition-colors"
+        class="w-full h-12 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
         결제하기
       </button>

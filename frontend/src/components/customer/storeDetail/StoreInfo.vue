@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg border-2 border-gray-400 shadow-sm mb-6 overflow-hidden">
+  <div class="bg-white rounded-lg border border-gray-200 shadow-sm mb-6 overflow-hidden">
     <!-- 음식점 이미지 -->
     <div class="image-placeholder aspect-video md:aspect-[3/1] w-full">
       <span>IMAGE</span>

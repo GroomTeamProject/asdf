@@ -2,7 +2,7 @@
   <section>
     <h2 class="mb-4 text-gray-800">메뉴</h2>
     <div class="grid gap-4">
-      <div v-for="menuItem in menuItems" :key="menuItem.id" class="border-2 border-gray-400 bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" @click="goToMenuDetail(menuItem.id)">
+      <div v-for="menuItem in menuItems" :key="menuItem.id" class="bg-white rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200" @click="goToMenuDetail(menuItem.id)">
         <div class="p-4">
           <div class="flex gap-4">
             <div class="image-placeholder w-20 h-20 flex-shrink-0">
