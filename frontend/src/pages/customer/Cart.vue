@@ -1,14 +1,19 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <!-- 장바구니 내용 -->
-    <main class="max-w-6xl mx-auto p-4">
-      <!-- 장바구니 아이템 목록 -->
-      <CartItems v-if="cart.length > 0" :cartItems="cart" @update-quantity="updateQuantity" />
-      <CartEmpty v-if="cart.length === 0" />
+  <div class="max-w-6xl mx-auto p-4 space-y-6">
+    <!-- 장바구니 아이템 목록 -->
+    <CartItems
+      v-if="cart.length > 0"
+      :cartItems="cart"
+      @update-quantity="updateQuantity"
+    />
+    <CartEmpty v-if="cart.length === 0" />
 
-      <!-- 주문 요약 및 결제 -->
-      <CartSummary v-if="cart.length > 0" :totalPrice="totalPrice" @place-order="placeOrder" />
-    </main>
+    <!-- 주문 요약 및 결제 -->
+    <CartSummary
+      v-if="cart.length > 0"
+      :totalPrice="totalPrice"
+      @place-order="placeOrder"
+    />
   </div>
 </template>
 
@@ -47,23 +52,14 @@ export default {
       }
     }
 
-    const placeOrder = () => {
+    const placeOrder = async () => {
       if (cart.value.length === 0) {
         alert('장바구니가 비어있습니다.')
         return
       }
 
-      const confirmed = confirm(`총 ${totalPrice.value.toLocaleString()}원을 주문하시겠습니까?`)
-
-      if (confirmed) {
-        // 주문 API 호출 & 주문 완료 처리
-        alert('주문이 완료되었습니다!')
-
-        const result = cartService.clearCart()
-        if (result.success) {
-          router.push('/customer/stores')
-        }
-      }
+      // 주문 페이지로 이동
+      router.push('/customer/order')
     }
 
     return {

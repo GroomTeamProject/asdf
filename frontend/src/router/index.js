@@ -17,6 +17,8 @@ import StoreList from '../pages/customer/StoreList.vue'
 import StoreDetail from '../pages/customer/StoreDetail.vue'
 import MenuDetail from '../pages/customer/MenuDetail.vue'
 import Cart from '../pages/customer/Cart.vue'
+import Order from '../pages/customer/Order.vue'
+import OrderComplete from '../pages/customer/OrderComplete.vue'
 
 // 라우트 경로 추가
 const routes = [
@@ -41,6 +43,8 @@ const routes = [
       { path: 'stores/:id', component: StoreDetail },
       { path: 'stores/:id/menu/:menuId', component: MenuDetail },
       { path: 'cart', component: Cart },
+      { path: 'order', component: Order },
+      { path: 'order-complete', component: OrderComplete },
     ],
   },
 ]

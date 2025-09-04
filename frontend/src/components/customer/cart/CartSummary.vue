@@ -9,7 +9,7 @@
         @click="placeOrder"
         class="w-full h-12 bg-gray-600 text-white border-2 border-gray-800 hover:bg-gray-700 rounded-md transition-colors"
       >
-        주문하기
+        결제하기
       </button>
     </div>
   </div>
