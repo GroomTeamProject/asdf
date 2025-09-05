@@ -49,6 +49,16 @@
         </div>
         
         <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">상세 주소</label>
+          <input
+            v-model="tempDeliveryDetailAddress"
+            type="text"
+            placeholder="동/호수, 건물명 등 (선택사항)"
+            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400 transition-colors duration-200"
+          />
+        </div>
+        
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">연락처</label>
           <input
             v-model="tempPhoneNumber"
@@ -79,39 +89,39 @@
 
 <script>
 import { ref } from 'vue'
+import { useOrderStore } from '@/stores/customer/order'
+import { storeToRefs } from 'pinia'
 
 export default {
   name: 'DeliveryInfo',
-  props: {
-    deliveryAddress: {
-      type: String,
-      required: true,
-    },
-    phoneNumber: {
-      type: String,
-      required: true,
-    },
-    estimatedDeliveryTime: {
-      type: String,
-      default: '약 30분 후',
-    },
-  },
-  emits: ['update-delivery-info'],
-  setup(props, { emit }) {
+  setup() {
+    const orderStore = useOrderStore()
+    
+    // store에서 필요한 상태들만 추출
+    const {
+      deliveryAddress,
+      deliveryDetailAddress,
+      phoneNumber,
+      estimatedDeliveryTime,
+    } = storeToRefs(orderStore)
+
     const showDeliveryModal = ref(false)
     const tempDeliveryAddress = ref('')
+    const tempDeliveryDetailAddress = ref('')
     const tempPhoneNumber = ref('')
 
     // 배달 정보 수정
     const editDeliveryInfo = () => {
-      tempDeliveryAddress.value = props.deliveryAddress
-      tempPhoneNumber.value = props.phoneNumber
+      tempDeliveryAddress.value = deliveryAddress.value
+      tempDeliveryDetailAddress.value = deliveryDetailAddress.value
+      tempPhoneNumber.value = phoneNumber.value
       showDeliveryModal.value = true
     }
 
     const saveDeliveryInfo = () => {
-      emit('update-delivery-info', {
+      orderStore.updateDeliveryInfo({
         deliveryAddress: tempDeliveryAddress.value,
+        deliveryDetailAddress: tempDeliveryDetailAddress.value,
         phoneNumber: tempPhoneNumber.value,
       })
       showDeliveryModal.value = false
@@ -122,8 +132,13 @@ export default {
     }
 
     return {
+      deliveryAddress,
+      deliveryDetailAddress,
+      phoneNumber,
+      estimatedDeliveryTime,
       showDeliveryModal,
       tempDeliveryAddress,
+      tempDeliveryDetailAddress,
       tempPhoneNumber,
       editDeliveryInfo,
       saveDeliveryInfo,

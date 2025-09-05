@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 export const useOrderStore = defineStore('order', () => {
   // 배달 정보
   const deliveryAddress = ref('')
+  const deliveryDetailAddress = ref('')
   const phoneNumber = ref('')
   const estimatedDeliveryTime = ref('약 30분 후')
 
@@ -30,6 +31,7 @@ export const useOrderStore = defineStore('order', () => {
   // 배달 정보 업데이트
   const updateDeliveryInfo = (info) => {
     deliveryAddress.value = info.deliveryAddress
+    deliveryDetailAddress.value = info.deliveryDetailAddress || ''
     phoneNumber.value = info.phoneNumber
   }
 
@@ -55,14 +57,16 @@ export const useOrderStore = defineStore('order', () => {
   }
 
   // 초기 배달 정보 설정
-  const initializeDeliveryInfo = (address, phone) => {
+  const initializeDeliveryInfo = (address, phone, detailAddress = '') => {
     deliveryAddress.value = address
+    deliveryDetailAddress.value = detailAddress
     phoneNumber.value = phone
   }
 
   // 상태 초기화
   const resetOrderState = () => {
     deliveryAddress.value = ''
+    deliveryDetailAddress.value = ''
     phoneNumber.value = ''
     customMemo.value = ''
     selectedMemo.value = ''
@@ -73,6 +77,7 @@ export const useOrderStore = defineStore('order', () => {
   return {
     // 상태
     deliveryAddress,
+    deliveryDetailAddress,
     phoneNumber,
     estimatedDeliveryTime,
     customMemo,
@@ -96,6 +101,6 @@ export const useOrderStore = defineStore('order', () => {
   persist: {
     key: 'order',
     storage: localStorage,
-    paths: ['deliveryAddress', 'phoneNumber', 'customMemo', 'selectedMemo', 'selectedPaymentMethod']
+    paths: ['deliveryAddress', 'deliveryDetailAddress', 'phoneNumber', 'customMemo', 'selectedMemo', 'selectedPaymentMethod']
   }
 })

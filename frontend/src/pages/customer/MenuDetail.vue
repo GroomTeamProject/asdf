@@ -59,8 +59,18 @@ export default {
     }
     
     const handleAddToCart = (cartItem) => {
-      // cartService를 통해 장바구니에 추가 (깊은 복사로 참조 문제 해결)
-      const result = cartService.addMenuToCart({
+      console.log('=== 장바구니 추가 디버깅 ===')
+      console.log('1. menuItem.value:', menuItem.value)
+      console.log('2. storeInfo.value:', storeInfo.value)
+      console.log('3. route.params:', route.params)
+      
+      const storeId = menuItem.value.store?.id || menuItem.value.storeId || route.params.id
+      const storeName = storeInfo.value?.name || menuItem.value.store?.name
+      
+      console.log('4. 계산된 storeId:', storeId)
+      console.log('5. 계산된 storeName:', storeName)
+      
+      const cartData = {
         id: menuItem.value.id,
         name: menuItem.value.name,
         price: menuItem.value.price,
@@ -68,11 +78,16 @@ export default {
         menuOptions: JSON.parse(JSON.stringify(menuOptions.value)), // 깊은 복사
         quantity: cartItem.quantity,
         totalPrice: cartItem.totalPrice,
-        // 가게 정보 추가
-        storeId: menuItem.value.storeId,
-        storeName: storeInfo.value.name,
+        // 가게 정보 추가 (엔티티 구조에 맞게)
+        storeId: storeId,
+        storeName: storeName,
         storeInfo: JSON.parse(JSON.stringify(storeInfo.value)) // 깊은 복사
-      })
+      }
+      
+      console.log('6. 장바구니에 추가할 데이터:', cartData)
+      
+      // cartService를 통해 장바구니에 추가 (깊은 복사로 참조 문제 해결)
+      const result = cartService.addMenuToCart(cartData)
       
       if (result.success) {
         console.log('장바구니에 추가됨:', result.message)
@@ -89,12 +104,43 @@ export default {
 
     onMounted(async () => {
       await loadMenuData(route.params.menuId)
-      menuOptions.value = await customerApi.getMenuOptions(route.params.menuId)
+      
+      // 백엔드에서 메뉴 조회 시 옵션과 하위 항목을 함께 반환하므로
+      // menuItem.value.options에서 직접 사용
+      if (menuItem.value.options && menuItem.value.options.length > 0) {
+        menuOptions.value = menuItem.value.options
+      } else {
+        // 옵션이 없는 경우 빈 배열
+        menuOptions.value = []
+      }
       
       // 가게 정보도 로드
-      if (menuItem.value.storeId) {
-        storeInfo.value = await customerApi.getStoreById(menuItem.value.storeId)
+      console.log('=== 가게 정보 로드 디버깅 ===')
+      console.log('1. menuItem.value.store:', menuItem.value.store)
+      console.log('2. route.params:', route.params)
+      console.log('3. menuItem.value.storeId:', menuItem.value.storeId)
+      
+      if (menuItem.value.store && menuItem.value.store.id) {
+        console.log('4. 메뉴에 포함된 가게 정보 사용')
+        storeInfo.value = menuItem.value.store
+      } else {
+        // 메뉴에 가게 정보가 없으면 URL에서 storeId를 가져와서 조회
+        // 라우터에서 :id가 storeId가 됨
+        const storeId = route.params.id || menuItem.value.storeId
+        console.log('5. URL에서 가져온 storeId (route.params.id):', storeId)
+        
+        if (storeId) {
+          console.log('6. 가게 정보 API 호출 중...')
+          const storeData = await customerApi.getStoreById(storeId)
+          console.log('7. API에서 받은 가게 정보:', storeData)
+          storeInfo.value = storeData
+        } else {
+          console.log('8. storeId가 없어서 가게 정보를 로드할 수 없음')
+        }
       }
+      
+      console.log('9. 최종 storeInfo.value:', storeInfo.value)
+      
     })
 
     return {
@@ -102,6 +148,7 @@ export default {
       menuItem,
       menuOptions,
       menuId,
+      storeInfo,
       handleOptionsChanged,
       handleAddToCart,
     }

@@ -43,8 +43,16 @@ export default {
     const categories = ref([])
 
     onMounted(async () => {
-      stores.value = await customerApi.getStores()
-      categories.value = await customerApi.getCategories()
+      try {
+        stores.value = await customerApi.getStores()
+        categories.value = await customerApi.getCategories()
+        
+        console.log('가게 목록:', stores.value)
+        console.log('카테고리 목록:', categories.value)
+      } catch (error) {
+        console.error('데이터 로딩 실패:', error)
+        alert('데이터를 불러오는데 실패했습니다.')
+      }
     })
 
     return {

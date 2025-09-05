@@ -45,6 +45,10 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCartStore } from '@/stores/customer/cart'
+import { orderService } from '@/services/customer/orderService'
 import MenuItem from './MenuItem.vue'
 
 export default {
@@ -52,18 +56,23 @@ export default {
   components: {
     MenuItem,
   },
-  props: {
-    groupedByStore: {
-      type: Object,
-      required: true,
-    },
-    totalItemCount: {
-      type: Number,
-      required: true,
-    },
-  },
-  emits: ['increase-quantity', 'decrease-quantity', 'remove-item', 'edit-options'],
-  setup(props, { emit }) {
+  setup() {
+    const router = useRouter()
+    const cartStore = useCartStore()
+
+    // 장바구니 상태
+    const orderItems = computed(() => cartStore.items)
+    
+    // 가게별로 메뉴들을 그룹화
+    const groupedByStore = computed(() => {
+      return orderService.groupItemsByStore(orderItems.value)
+    })
+
+    // 총 아이템 개수
+    const totalItemCount = computed(() => {
+      return orderService.calculateTotalItemCount(orderItems.value)
+    })
+
     // 가게별 소계 계산
     const getStoreSubtotal = (items) => {
       return items.reduce((total, item) => {
@@ -74,24 +83,39 @@ export default {
 
     // 수량 조작
     const increaseQuantity = (item) => {
-      emit('increase-quantity', item)
+      const result = orderService.updateItemQuantity(item, item.quantity + 1)
+      if (!result.success) {
+        alert('수량 업데이트에 실패했습니다: ' + result.message)
+      }
     }
 
     const decreaseQuantity = (item) => {
-      emit('decrease-quantity', item)
+      if (item.quantity > 1) {
+        const result = orderService.updateItemQuantity(item, item.quantity - 1)
+        if (!result.success) {
+          alert('수량 업데이트에 실패했습니다: ' + result.message)
+        }
+      }
     }
 
     // 아이템 삭제
     const removeItem = (item) => {
-      emit('remove-item', item)
+      if (confirm('이 메뉴를 장바구니에서 제거하시겠습니까?')) {
+        const result = orderService.removeItem(item)
+        if (!result.success) {
+          alert('메뉴 제거에 실패했습니다: ' + result.message)
+        }
+      }
     }
 
     // 옵션 변경
     const editOptions = (item) => {
-      emit('edit-options', item)
+      router.push(`/customer/stores/${item.storeId}/menu/${item.id}`)
     }
 
     return {
+      groupedByStore,
+      totalItemCount,
       getStoreSubtotal,
       increaseQuantity,
       decreaseQuantity,

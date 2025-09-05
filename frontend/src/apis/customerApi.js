@@ -1,43 +1,65 @@
-import { mocks } from './mock'
-import { POST } from '@/libs/ajax'
+import { GET, POST } from '@/libs/ajax'
 
 export const customerApi = {
-  // TODO: 실제 API 요청
-  
+  // 카테고리 목록 조회
   getCategories: async () => {
-    return mocks.categories
+    try {
+      return await GET('/api/categories')
+    } catch (error) {
+      console.error('카테고리 조회 실패:', error)
+      throw error
+    }
   },
+
+  // 가게 목록 조회
   getStores: async () => {
-    return mocks.stores
+    try {
+      return await GET('/api/stores')
+    } catch (error) {
+      console.error('가게 목록 조회 실패:', error)
+      throw error
+    }
   },
-  getMenuItems: async () => {
-    return mocks.menuItems
-  },
+
+  // 가게 상세 조회
   getStoreById: async (storeId) => {
-    return mocks.stores.find(store => store.id == storeId)
+    try {
+      return await GET(`/api/stores/${storeId}`)
+    } catch (error) {
+      console.error('가게 상세 조회 실패:', error)
+      throw error
+    }
   },
+
+  // 메뉴 상세 조회
   getMenuById: async (menuId) => {
-    return mocks.menuItems.find(menu => menu.id == menuId)
+    try {
+      return await GET(`/api/menus/${menuId}`)
+    } catch (error) {
+      console.error('메뉴 상세 조회 실패:', error)
+      throw error
+    }
   },
+
+  // 특정 가게의 메뉴 목록 조회
   getMenusByStoreId: async (storeId) => {
-    return mocks.menuItems.filter(menu => menu.storeId == storeId)
+    try {
+      return await GET(`/api/stores/${storeId}/menus`)
+    } catch (error) {
+      console.error('가게 메뉴 목록 조회 실패:', error)
+      throw error
+    }
   },
-  getMenuOptions: async (menuId) => {
-    // 특정 메뉴의 옵션들을 가져옴
-    const menuOptions = mocks.menuOptions.filter(option => option.menuId == menuId)
-    
-    // 각 옵션에 대한 아이템들을 추가
-    return menuOptions.map(option => ({
-      ...option,
-      items: mocks.menuOptionItems.filter(item => item.optionId === option.id && item.isActive)
-    }))
-  },
+
+  // 메뉴 옵션 조회 (백엔드에서 메뉴 상세 조회 시 함께 반환하므로 별도 호출 불필요)
+  // getMenuOptions: async (menuId) => {
+  //   // 이제 메뉴 상세 조회에서 옵션을 함께 반환하므로 사용하지 않음
+  // },
   
   // 주문 생성
   createOrder: async (orderData) => {
     try {
-      const result = await POST('/api/customers/orders', orderData)
-      return result
+      return await POST('/api/orders', orderData)
     } catch (error) {
       console.error('주문 생성 실패:', error)
       throw error

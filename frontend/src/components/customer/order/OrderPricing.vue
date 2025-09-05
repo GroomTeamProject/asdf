@@ -29,25 +29,40 @@
 </template>
 
 <script>
+import { computed } from 'vue'
+import { useCartStore } from '@/stores/customer/cart'
+
 export default {
   name: 'OrderPricing',
-  props: {
-    totalAmount: {
-      type: Number,
-      required: true,
-    },
-    deliveryFee: {
-      type: Number,
-      required: true,
-    },
-    discountAmount: {
-      type: Number,
-      required: true,
-    },
-    finalAmount: {
-      type: Number,
-      required: true,
-    },
+  setup() {
+    const cartStore = useCartStore()
+
+    // 장바구니에서 총 금액 가져오기
+    const totalAmount = computed(() => cartStore.totalPrice)
+
+    // 배달비 계산
+    const deliveryFee = computed(() => {
+      // TODO: 가게별 배달비 설정
+      return totalAmount.value >= 15000 ? 0 : 3000
+    })
+
+    // 할인 금액 계산
+    const discountAmount = computed(() => {
+      // TODO: 할인 정책 적용
+      return 0
+    })
+
+    // 최종 금액 계산
+    const finalAmount = computed(() => {
+      return totalAmount.value + deliveryFee.value - discountAmount.value
+    })
+
+    return {
+      totalAmount,
+      deliveryFee,
+      discountAmount,
+      finalAmount,
+    }
   },
 }
 </script>

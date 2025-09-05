@@ -36,12 +36,20 @@ export const useCartStore = defineStore('cart', () => {
   const hasItems = computed(() => items.value.length > 0)
 
   const addItem = (item) => {
+    console.log('=== 장바구니 스토어 addItem 디버깅 ===')
+    console.log('1. 받은 item 데이터:', item)
+    console.log('2. item.storeId:', item.storeId)
+    console.log('3. item.storeName:', item.storeName)
+    console.log('4. item.storeInfo:', item.storeInfo)
+    
     const itemKey = generateItemKey(item)
+    console.log('5. 생성된 itemKey:', itemKey)
     
     // 같은 키를 가진 아이템 찾기
     const existingItem = items.value.find(cartItem => cartItem._key === itemKey)
     
     if (existingItem) {
+      console.log('6. 기존 아이템 수량 증가')
       // 같은 메뉴 + 같은 옵션이면 수량만 증가
       const oldQuantity = existingItem.quantity
       const addQuantity = item.quantity || 1
@@ -57,6 +65,7 @@ export const useCartStore = defineStore('cart', () => {
         existingItem.totalPrice = pricePerItem * existingItem.quantity
       }
     } else {
+      console.log('6. 새로운 아이템 추가')
       // 새로운 아이템으로 추가 (고유 키 포함, 깊은 복사로 참조 문제 방지)
       const newItem = {
         ...item,
@@ -65,8 +74,11 @@ export const useCartStore = defineStore('cart', () => {
         selectedOptions: JSON.parse(JSON.stringify(item.selectedOptions || {})),
         menuOptions: JSON.parse(JSON.stringify(item.menuOptions || []))
       }
+      console.log('7. 추가할 newItem:', newItem)
       items.value.push(newItem)
     }
+    
+    console.log('8. 현재 장바구니 items:', items.value)
   }
 
   const removeItem = (itemKey) => {
