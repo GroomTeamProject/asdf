@@ -10,4 +10,5 @@ public class CoreApplication {
 		SpringApplication.run(CoreApplication.class, args);
 	}
 
+	//A-bit-change-test
 }
