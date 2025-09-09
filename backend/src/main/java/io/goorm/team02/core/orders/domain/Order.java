@@ -24,10 +24,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Entity
 @Table(name = "orders")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class Order extends BaseEntity {
 
 	@Id
