@@ -1,0 +1,50 @@
+name: Springboot CD - Deploy (develop)
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ init/cicd ]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ github.repository_owner }}/team02-backend
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, ec2, dev]
+    if: github.event.pull_request.merged == true
+    steps:
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      
+    - name: Pull Docker image
+      run: |
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+    - name: Stop existing container
+      run: |
+        docker stop springboot-app || true
+        docker rm springboot-app || true
+
+    - name: Start new container
+      run: |
+        docker run -d \
+          --name springboot-app \
+          --restart unless-stopped \
+          -p 8080:8080 \
+          -e SPRING_PROFILES_ACTIVE=dev \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+    - name: Verify deployment
+      run: |
+        sleep 10
+        if docker ps | grep -q springboot-app; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+          docker logs springboot-app
+          exit 1
+        fi
