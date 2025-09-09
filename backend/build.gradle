@@ -31,24 +31,26 @@ dependencies {
 
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'  // MariaDB 드라이버
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'  //JPA로 DB 접근
+
 	// DB 마이그레이션 도구 Flyway
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-mysql'
 
 	// Spring Boot Starter Security
-    implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
 
 	// JWT 라이브러리 (JJWT)
-    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // JSON 직렬화/역직렬화
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // JSON 직렬화/역직렬화
 
 	compileOnly 'org.projectlombok:lombok' // Getter/Setter 자동 생성
 	annotationProcessor 'org.projectlombok:lombok'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'  // JUnit 
-	
+
+	testRuntimeOnly 'com.h2database:h2'  
 }
 
 tasks.named('test') {
