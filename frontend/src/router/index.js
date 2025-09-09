@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../pages/Home.vue'
 import Signup from '../pages/auth/Signup.vue'
 import Login from '../pages/auth/Login.vue'
+import MyPage from '../pages/auth/MyPage.vue'
+import ProfileEdit from '../pages/auth/ProfileEdit.vue'
 //import Dashboard from '../pages/auth/Dashboard.vue'
 
 // 권한별 메인 페이지
@@ -16,6 +18,7 @@ const routes = [
   { path: '/signup', component: Signup },
   { path: '/login', component: Login },
   { path: '/my-page', name: 'MyPage', component: MyPage },
+  { path: '/profile', name: 'ProfileEdit', component: ProfileEdit },
   { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
   { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
   { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },

@@ -58,6 +58,7 @@ export default {
         localStorage.setItem('userName', name)
         localStorage.setItem('userType', userType)
 
+        console.log('토큰 저장 완료:', token);
         alert(`로그인 성공! 환영합니다, ${name}님.`)
 
         // 3️⃣ 로그인 후 권한에 맞는 페이지로 이동 (예: 대시보드)
