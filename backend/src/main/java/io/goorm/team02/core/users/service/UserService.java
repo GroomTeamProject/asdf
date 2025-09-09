@@ -3,14 +3,22 @@ package io.goorm.team02.core.users.service;
 
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.domain.enums.UserType;
+<<<<<<< HEAD
 import io.goorm.team02.core.auth.controller.dto.SignupRequest;
 import io.goorm.team02.core.auth.controller.dto.SignupResponse;
+=======
+import io.goorm.team02.core.users.controller.dto.ProfileUpdateRequest;
+import io.goorm.team02.core.users.controller.dto.SignupRequest;
+import io.goorm.team02.core.users.controller.dto.SignupResponse;
+>>>>>>> dcc87e2 (feat: 마이페이지(조회, 수정))
 import io.goorm.team02.core.users.repository.UserinfoRepository;
 import io.goorm.team02.core.users.domain.UserAddress;
 import io.goorm.team02.core.users.repository.UserAddressRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import io.goorm.team02.core.users.controller.dto.ProfileUpdateRequest;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +71,25 @@ public class UserService {
 
         // ✅ Response DTO 반환 : email, name, user_type
         return new SignupResponse(savedUser.getEmail(), savedUser.getName(), savedUser.getUserType());
+    }
+
+    // ✅ 이메일로 사용자 조회
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    // ✅ 프로필 업데이트
+    @Transactional
+    public User updateUserProfile(String email, ProfileUpdateRequest request) {
+        User user = getUserByEmail(email);
+        if (request.getName() != null) {
+            user.setName(request.getName());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+        return userRepository.save(user);
     }
 
 }

@@ -37,8 +37,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+<<<<<<< HEAD:backend/src/main/java/io/goorm/team02/core/auth/config/SecurityConfig.java
                 // CORS 활성화
                 .cors(cors -> cors.and())
+=======
+            // CSRF 비활성화
+            .csrf(csrf -> csrf.disable())
+            
+            // 세션을 STATELESS로 설정 (JWT 사용)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            
+            // 요청별 접근 권한 설정
+            .authorizeHttpRequests(auth -> auth
+                //공통접근
+                .requestMatchers("/api/auth/**", "/error").permitAll() // 로그인/회원가입 허용
+                .requestMatchers("/api/users/me").authenticated()      // 로그인 사용자만 마이페이지 조회/수정 가능
+>>>>>>> dcc87e2 (feat: 마이페이지(조회, 수정)):backend/src/main/java/io/goorm/team02/core/common/config/SecurityConfig.java
 
                 // CSRF 비활성화
                 .csrf(csrf -> csrf.disable())
