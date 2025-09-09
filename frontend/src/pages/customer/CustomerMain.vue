@@ -1,10 +1,14 @@
 <template>
-  <div class="p-6">
-    <h1 class="text-2xl font-bold">고객 메인 페이지</h1>
+  <BaseLayout title="고객 메인 페이지">
     <p class="mt-2">CUSTOMER 전용 페이지입니다.</p>
-  </div>
+  </BaseLayout>
 </template>
 
 <script>
-export default { name: 'CustomerMain' }
+import BaseLayout from '../../components/auth/BaseLayout.vue';
+
+export default {
+  name: 'CustomerMain',
+  components: { BaseLayout },
+};
 </script>

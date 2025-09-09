@@ -2,8 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../pages/Home.vue'
 import Signup from '../pages/auth/Signup.vue'
 import Login from '../pages/auth/Login.vue'
-import Dashboard from '../pages/auth/Dashboard.vue'
-import StoreRegistration from '../pages/owner/StoreRegistration.vue'
+//import Dashboard from '../pages/auth/Dashboard.vue'
 
 // 권한별 메인 페이지
 import CustomerMain from '../pages/customer/CustomerMain.vue'
@@ -16,6 +15,7 @@ const routes = [
   { path: '/', component: Home },
   { path: '/signup', component: Signup },
   { path: '/login', component: Login },
+  { path: '/my-page', name: 'MyPage', component: MyPage },
   { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
   { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
   { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
