@@ -3,9 +3,9 @@ server:
 spring:
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://localhost:3306/team02_db
-    username: team02_user
-    password: go1328
+    url: ${DB_URL_LOCAL}
+    username: ${DB_USERNAME_LOCAL}
+    password: ${DB_PASSWORD_LOCAL}
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -16,4 +16,4 @@ spring:
       dialect: org.hibernate.dialect.MariaDBDialect
     
 cors:
-  allowed-origins: ${ORIGIN_URL_LOCAL:http://localhost:3000}
+  allowed-origins: ${ORIGIN_URL_LOCAL}
