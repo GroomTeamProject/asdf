@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: groomteamproject/team02-backend
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/team02-backend
 
 jobs:
   deploy:
