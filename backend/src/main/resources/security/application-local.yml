@@ -17,3 +17,4 @@ spring:
 
 cors:
   allowed-origins: ${ORIGIN_URL_LOCAL}
+
