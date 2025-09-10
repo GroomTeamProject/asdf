@@ -1,11 +1,11 @@
 
-package io.goorm.team02.core.users.controller;
+package io.goorm.team02.core.auth.controller;
 
-import io.goorm.team02.core.users.controller.dto.LoginRequest;
-import io.goorm.team02.core.users.controller.dto.LoginResponse;
-import io.goorm.team02.core.users.controller.dto.SignupRequest;
-import io.goorm.team02.core.users.controller.dto.SignupResponse;
-import io.goorm.team02.core.users.service.AuthService;
+import io.goorm.team02.core.auth.controller.dto.LoginRequest;
+import io.goorm.team02.core.auth.controller.dto.LoginResponse;
+import io.goorm.team02.core.auth.controller.dto.SignupRequest;
+import io.goorm.team02.core.auth.controller.dto.SignupResponse;
+import io.goorm.team02.core.auth.service.AuthService;
 import io.goorm.team02.core.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 

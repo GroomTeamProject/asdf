@@ -1,4 +1,4 @@
-package io.goorm.team02.core.common.config;
+package io.goorm.team02.core.auth.service;
 
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.repository.UserinfoRepository;

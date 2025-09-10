@@ -1,4 +1,4 @@
-package io.goorm.team02.core.common.security;
+package io.goorm.team02.core.auth.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

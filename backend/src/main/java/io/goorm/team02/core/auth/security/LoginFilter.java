@@ -1,15 +1,15 @@
-package io.goorm.team02.core.common.security;
+package io.goorm.team02.core.auth.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.goorm.team02.core.users.controller.dto.LoginRequest;
-import io.goorm.team02.core.users.controller.dto.LoginResponse;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import io.goorm.team02.core.auth.controller.dto.LoginRequest;
+import io.goorm.team02.core.auth.controller.dto.LoginResponse;
 import io.goorm.team02.core.users.domain.User;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

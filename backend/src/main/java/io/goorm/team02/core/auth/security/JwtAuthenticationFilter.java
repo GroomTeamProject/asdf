@@ -1,6 +1,5 @@
-package io.goorm.team02.core.common.security;
+package io.goorm.team02.core.auth.security;
 
-import io.goorm.team02.core.common.config.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import io.goorm.team02.core.auth.service.CustomUserDetailsService;
 
 import java.io.IOException;
 
@@ -25,16 +26,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        // 로그인, 회원가입, Swagger 관련 경로는 필터 제외
+        return path.startsWith("/api/auth") 
+                || path.startsWith("/v3/api-docs") 
+                || path.startsWith("/swagger-ui") 
+                || path.startsWith("/swagger-ui.html") 
+                || path.startsWith("/swagger-resources") 
+                || path.startsWith("/webjars");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-
-        String path = request.getServletPath();
-        // 로그인, 회원가입 요청은 필터 제외
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         String header = request.getHeader("Authorization");
         String token = null;

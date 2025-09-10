@@ -1,4 +1,4 @@
-package io.goorm.team02.core.common.config;
+package io.goorm.team02.core.auth.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

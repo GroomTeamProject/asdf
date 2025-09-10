@@ -1,4 +1,4 @@
-package io.goorm.team02.core.users.controller.dto;
+package io.goorm.team02.core.auth.controller.dto;
 import lombok.Getter;
 import lombok.Setter;
 import io.goorm.team02.core.users.domain.enums.UserType;

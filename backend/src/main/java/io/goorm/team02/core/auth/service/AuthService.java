@@ -1,9 +1,9 @@
-package io.goorm.team02.core.users.service;
+package io.goorm.team02.core.auth.service;
 
-import io.goorm.team02.core.users.controller.dto.LoginResponse;
+import io.goorm.team02.core.auth.controller.dto.LoginResponse;
+import io.goorm.team02.core.auth.security.JwtTokenProvider;
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
-import io.goorm.team02.core.common.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

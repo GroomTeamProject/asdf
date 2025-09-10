@@ -1,10 +1,10 @@
 
 package io.goorm.team02.core.users.service;
 
+import io.goorm.team02.core.auth.controller.dto.SignupRequest;
+import io.goorm.team02.core.auth.controller.dto.SignupResponse;
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.domain.enums.UserType;
-import io.goorm.team02.core.users.controller.dto.SignupRequest;
-import io.goorm.team02.core.users.controller.dto.SignupResponse;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
 import io.goorm.team02.core.users.domain.UserAddress;
 import io.goorm.team02.core.users.repository.UserAddressRepository;
