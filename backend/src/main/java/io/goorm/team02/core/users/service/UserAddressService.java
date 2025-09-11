@@ -7,6 +7,7 @@ import io.goorm.team02.core.users.domain.UserAddress;
 import io.goorm.team02.core.users.repository.UserAddressRepository;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import io.goorm.team02.core.users.domain.User;
@@ -18,6 +19,7 @@ public class UserAddressService {
     private final UserAddressRepository addressRepository;
     private final UserinfoRepository userRepository;
 
+    // 1. 새로운 주소 등록
     @Transactional
     public UserAddressResponse addAddress(Long userId,UserAddressRequest request) {
         // userid로 유저 조회
@@ -45,5 +47,69 @@ public class UserAddressService {
                 saved.getZipcode(),
                 saved.getIsDefault()
             );
-      }
+    }
+
+
+    // 2. 등록된 주소 조회
+    @Transactional(readOnly = true)
+    public List<UserAddressResponse> getAllAddresses(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return addressRepository.findByUser(user)
+                .stream()
+                .map(address -> new UserAddressResponse(
+                        address.getId(),
+                        address.getAddressName(),
+                        address.getAddress(),
+                        address.getDetailAddress(),
+                        address.getZipcode(),
+                        address.getIsDefault()
+                ))
+                .toList();
+    }
+
+    // 3. 특정 주소 수정
+    @Transactional
+    public UserAddressResponse updateAddress(Long userId, Long addressId, UserAddressRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserAddress address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new RuntimeException("Address not found"));
+
+        // 현재 로그인한 유저인지 확인
+        if (!address.getUser().getId().equals(userId)) {
+            throw new RuntimeException("본인의 주소만 수정할 수 있습니다.");
+        }
+
+        // 수정 가능한 필드 업데이트
+        address.setAddressName(request.getAddressName());
+        address.setAddress(request.getAddress());
+        address.setDetailAddress(request.getDetailAddress());
+        address.setZipcode(request.getZipcode());
+        address.setIsDefault(request.getIsDefault());
+
+        // isDefault 처리: true로 수정한 경우 다른 주소를 false로 변경
+        if (Boolean.TRUE.equals(request.getIsDefault())) {
+            addressRepository.findByUser(user).forEach(a -> {
+                if (!a.getId().equals(addressId)) {
+                    a.setIsDefault(false);
+                }
+            });
+        }
+
+        addressRepository.save(address);
+
+        return new UserAddressResponse(
+                address.getId(),
+                address.getAddressName(),
+                address.getAddress(),
+                address.getDetailAddress(),
+                address.getZipcode(),
+                address.getIsDefault()
+        );
+    }
+
+
 }
