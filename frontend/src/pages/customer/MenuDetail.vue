@@ -26,7 +26,7 @@ import CustomerContainer from '@/components/customer/CustomerContainer.vue'
 import MenuInfo from '@/components/customer/menuDetail/MenuInfo.vue'
 import MenuOptions from '@/components/customer/menuDetail/MenuOptions.vue'
 import QuantitySelector from '@/components/customer/menuDetail/QuantitySelector.vue'
-import { customerApi } from '@/apis/customerApi'
+import { customerApi } from '@/api/customer/customerApi'
 import { cartService } from '@/services/customer/cartService'
 import router from '@/router'
 
@@ -48,12 +48,12 @@ export default {
     const menuOptions = ref([])
     const storeInfo = ref({})
 
-    const loadMenuData = async (id) => {
-      const menuData = await customerApi.getMenuById(id)
+    const loadMenuData = async (storeId, id) => {
+      const menuData = await customerApi.getMenuById(storeId, id)
       if (menuData) {
         menuItem.value = menuData
       } else {
-        console.error('메뉴 정보를 찾을 수 없습니다:', id)
+        console.error('메뉴 정보를 찾을 수 없습니다:', storeId, id)
         router.push('/customer/stores')
       }
     }
@@ -103,7 +103,7 @@ export default {
     }
 
     onMounted(async () => {
-      await loadMenuData(route.params.menuId)
+      await loadMenuData(route.params.id, route.params.menuId)
       
       // 백엔드에서 메뉴 조회 시 옵션과 하위 항목을 함께 반환하므로
       // menuItem.value.options에서 직접 사용

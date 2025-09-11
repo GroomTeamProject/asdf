@@ -1,5 +1,5 @@
 import { cartService } from './cartService'
-import { customerApi } from '@/apis/customerApi'
+import { customerApi } from '@/api/customer/customerApi'
 
 export class OrderService {
   // 가게별로 메뉴들을 그룹화

@@ -78,7 +78,6 @@
 
 <script>
 import { computed } from 'vue'
-import { customerApi } from '@/apis/customerApi'
 
 export default {
   name: 'CartItems',

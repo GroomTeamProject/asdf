@@ -4,13 +4,18 @@
       <!-- 검색바 -->
       <StoreSearchBar v-model="searchQuery" />
 
+      <!-- TODO: 음식점 카테고리 추가 후 사용 -->
       <!-- 카테고리 -->
-      <section>
+      <!-- <section>
         <h2 class="mb-4 text-gray-800 text-2xl font-bold">카테고리</h2>
         <div class="grid grid-cols-4 gap-4 mb-8">
-          <StoreCategoryCard v-for="category in categories" :key="category.id" :storeCategory="category" />
+          <StoreCategoryCard
+            v-for="category in categories"
+            :key="category.id"
+            :storeCategory="category"
+          />
         </div>
-      </section>
+      </section> -->
 
       <!-- 음식점 리스트 -->
       <section>
@@ -26,29 +31,22 @@
 <script>
 import { ref, onMounted } from 'vue'
 import StoreSearchBar from '@/components/customer/storeList/StoreSearchBar.vue'
-import StoreCategoryCard from '@/components/customer/storeList/StoreCategoryCard.vue'
 import StoreCard from '@/components/customer/storeList/StoreCard.vue'
-import { customerApi } from '@/apis/customerApi'
+import { customerApi } from '@/api/customer/customerApi.js'
 
 export default {
   name: 'Stores',
   components: {
     StoreSearchBar,
-    StoreCategoryCard,
     StoreCard,
   },
   setup() {
     const searchQuery = ref('')
     const stores = ref([])
-    const categories = ref([])
 
     onMounted(async () => {
       try {
         stores.value = await customerApi.getStores()
-        categories.value = await customerApi.getCategories()
-        
-        console.log('가게 목록:', stores.value)
-        console.log('카테고리 목록:', categories.value)
       } catch (error) {
         console.error('데이터 로딩 실패:', error)
         alert('데이터를 불러오는데 실패했습니다.')
@@ -58,7 +56,6 @@ export default {
     return {
       searchQuery,
       stores,
-      categories,
     }
   },
 }

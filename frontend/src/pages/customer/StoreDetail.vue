@@ -19,7 +19,7 @@ import { useRouter, useRoute } from 'vue-router'
 import StoreInfo from '@/components/customer/storeDetail/StoreInfo.vue'
 import StoreMenuCard from '@/components/customer/storeDetail/StoreMenuCard.vue'
 import StoreCartButton from '@/components/customer/storeDetail/StoreCartButton.vue'
-import { customerApi } from '@/apis/customerApi'
+import { customerApi } from '@/api/customer/customerApi'
 
 export default {
   name: 'StoreDetail',
