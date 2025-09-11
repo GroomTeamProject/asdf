@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../pages/Home.vue'
 import Signup from '../pages/auth/Signup.vue'
 import Login from '../pages/auth/Login.vue'
-import Dashboard from '../pages/auth/Dashboard.vue'
 import StoreRegistration from '../pages/owner/StoreRegistration.vue'
 
 // 권한별 메인 페이지
@@ -10,7 +9,6 @@ import CustomerMain from '../pages/customer/CustomerMain.vue'
 import OwnerMain from '../pages/owner/OwnerMain.vue'
 import DriverMain from '../pages/driver/DriverMain.vue'
 
-import Stores from '../pages/customer/Stores.vue'
 import DefaultLayout from '../layouts/DefaultLayout.vue'
 import CustomerLayout from '../layouts/customer/CustomerLayout.vue'
 import StoreList from '../pages/customer/StoreList.vue'
