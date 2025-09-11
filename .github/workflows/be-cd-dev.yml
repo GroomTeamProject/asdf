@@ -11,7 +11,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, ec2, test]
+    runs-on: [self-hosted, ec2, dev]
     if: github.event.pull_request.merged == true
     steps:
     - name: Log in to Docker Hub
