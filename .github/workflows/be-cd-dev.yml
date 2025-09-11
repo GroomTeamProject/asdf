@@ -3,7 +3,7 @@ name: Springboot CD - Deploy (develop)
 on:
   pull_request:
     types: [closed]
-    branches: [ develop ]
+    branches: [ fix/cicd ]
 
 env:
   REGISTRY: docker.io

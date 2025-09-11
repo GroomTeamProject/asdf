@@ -2,7 +2,7 @@ name: Springboot CI - Build & Test (develop)
 
 on:
   pull_request:
-    branches: [ develop ]
+    branches: [ fix/cicd ]
 
 env:
   REGISTRY: docker.io
