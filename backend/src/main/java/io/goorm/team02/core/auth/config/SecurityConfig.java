@@ -68,6 +68,9 @@ public class SecurityConfig {
                         //공통접근
                         .requestMatchers("/api/auth/**", "/error").permitAll() // 로그인/회원가입 허용
 
+                        // 마이페이지 접근 허용
+                        .requestMatchers("/api/users/me", "/api/users/me/password").authenticated()
+
                         // 역할별 접근(임시, api맞춰야함)
                         .requestMatchers("/api/stores/**").hasRole("CUSTOMER") // 이용자 전용
                         .requestMatchers("/api/owner/**").hasRole("OWNER")

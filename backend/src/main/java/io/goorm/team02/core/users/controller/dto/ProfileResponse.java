@@ -1,4 +1,3 @@
-// 마이페이지 조회 (Get)
 package io.goorm.team02.core.users.controller.dto;
 
 import io.goorm.team02.core.users.domain.User;

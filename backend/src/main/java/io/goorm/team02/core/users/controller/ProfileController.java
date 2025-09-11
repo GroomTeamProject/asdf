@@ -2,6 +2,7 @@ package io.goorm.team02.core.users.controller;
 
 import io.goorm.team02.core.users.controller.dto.ProfileResponse;
 import io.goorm.team02.core.users.controller.dto.ProfileUpdateRequest;
+import io.goorm.team02.core.users.controller.dto.ProfilePasswordEdit;
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -33,4 +34,15 @@ public class ProfileController {
         User updatedUser = userService.updateUserProfile(userDetails.getUsername(), request);
         return ResponseEntity.ok(ProfileResponse.fromEntity(updatedUser));
     }
+
+    // 비밀번호 변경
+    @PatchMapping("/me/password") // put이 아니라, patch??
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody ProfilePasswordEdit request
+    ) {
+        userService.changePassword(userDetails.getUsername(), request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.ok("Password changed successfully");
+    }
+
 }

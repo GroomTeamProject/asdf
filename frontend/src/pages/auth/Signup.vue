@@ -116,7 +116,7 @@ export default {
         const response = await axios.post('http://localhost:8080/api/auth/signup', this.form)
         console.log('회원가입 성공:', response.data)
         alert('회원가입 성공!')
-        // 페이지 이동 예시: router.push('/login')
+        this.$router.push('/login')
       } catch (error) {
         console.error('회원가입 실패:', error.response ? error.response.data : error.message)
         alert('회원가입 실패! 콘솔 확인')

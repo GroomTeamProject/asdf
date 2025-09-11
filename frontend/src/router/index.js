@@ -2,14 +2,17 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../pages/Home.vue'
 import Signup from '../pages/auth/Signup.vue'
 import Login from '../pages/auth/Login.vue'
-import MyPage from '../pages/auth/MyPage.vue'
-import ProfileEdit from '../pages/auth/ProfileEdit.vue'
+import MyPage from '../pages/users/MyPage.vue'
+import ProfileEdit from '../pages/users/ProfileEdit.vue'
+import ChangePassword from '../pages/users/ChangePassword.vue'
 //import Dashboard from '../pages/auth/Dashboard.vue'
 
 // 권한별 메인 페이지
 import CustomerMain from '../pages/customer/CustomerMain.vue'
 import OwnerMain from '../pages/owner/OwnerMain.vue'
 import DriverMain from '../pages/driver/DriverMain.vue'
+
+import StoreRegistration from '../pages/owner/StoreRegistration.vue'
 
 
 // 라우트 경로 추가
@@ -19,6 +22,7 @@ const routes = [
   { path: '/login', component: Login },
   { path: '/my-page', name: 'MyPage', component: MyPage },
   { path: '/profile', name: 'ProfileEdit', component: ProfileEdit },
+  { path: '/change-password', component: ChangePassword },
   { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
   { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
   { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
