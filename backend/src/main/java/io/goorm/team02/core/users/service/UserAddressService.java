@@ -111,5 +111,29 @@ public class UserAddressService {
         );
     }
 
+    // 4. 주소 삭제 
+    @Transactional
+    public void deleteAddress(Long userId, Long addressId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserAddress address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new RuntimeException("Address not found"));
+
+        // 본인 주소인지 확인
+        if (!address.getUser().getId().equals(userId)) {
+            throw new RuntimeException("본인의 주소만 삭제할 수 있습니다.");
+        }
+
+        addressRepository.delete(address);
+
+        // 기본주소(true) 삭제시 처리
+        // 삭제한 주소가 기본 주소였으면, 다른 주소 중 하나를 기본으로 설정 (옵션)
+        if (Boolean.TRUE.equals(address.getIsDefault())) {
+            addressRepository.findByUser(user).stream().findFirst()
+                .ifPresent(a -> a.setIsDefault(true));
+        }
+    }
+
 
 }

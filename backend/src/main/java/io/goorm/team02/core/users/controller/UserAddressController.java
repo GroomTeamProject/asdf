@@ -18,7 +18,7 @@ public class UserAddressController {
 
     private final UserAddressService userAddressService;
 
-    // 새로운 주소 등록
+    // 1. 새로운 주소 등록
     @PostMapping
     public ResponseEntity<UserAddressResponse> addAddress(@RequestBody UserAddressRequest request) {
     Long userId = SecurityUtils.getCurrentUserId(); // JWT에서 PK 추출
@@ -26,7 +26,7 @@ public class UserAddressController {
     return ResponseEntity.ok(response);
     }
  
-    // 해당 id의 모든 주소 목록 조회
+    // 2. 해당 id의 모든 주소 목록 조회
     @GetMapping
     public ResponseEntity<List<UserAddressResponse>> getAllAddresses() {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -34,7 +34,7 @@ public class UserAddressController {
         return ResponseEntity.ok(addresses);
     }
 
-    // 특정 주소 수정
+    // 3. 특정 주소 수정
     @PatchMapping("/{addressId}")
     public ResponseEntity<UserAddressResponse> updateAddress(
             @PathVariable Long addressId,
@@ -43,5 +43,13 @@ public class UserAddressController {
         Long userId = SecurityUtils.getCurrentUserId();
         UserAddressResponse updated = userAddressService.updateAddress(userId, addressId, request);
         return ResponseEntity.ok(updated);
+    }
+    
+    // 4. 주소 삭제
+    @DeleteMapping("/{addressId}")
+    public ResponseEntity<Void> deleteAddress(@PathVariable Long addressId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        userAddressService.deleteAddress(userId, addressId);
+        return ResponseEntity.noContent().build();
     }
 }
