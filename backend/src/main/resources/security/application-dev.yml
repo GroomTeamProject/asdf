@@ -12,6 +12,8 @@ spring:
       dialect: org.hibernate.dialect.MariaDBDialect
   flyway:
     enabled: false # 수동으로 Bean을 등록하기 위해 비활성화
+  jwt:
+    secret: ${JWT_SECRET_DEV}  # 환경변수에서 불러오고, 없으면 default 값 사용
 
 cors:
   allowed-origins: ${ORIGIN_URL_DEV}
