@@ -1,7 +1,10 @@
 package io.goorm.team02.core.auth.security;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -11,9 +14,16 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS512); // 안전한 512비트 키
+    //private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS512); // 안전한 512비트 키
+
+    private final Key key;
     private final long EXPIRATION = 1000L * 60 * 60; // 1시간
 
+    public JwtTokenProvider(@Value("${spring.jwt.secret}") String secret) {
+        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        this.key = Keys.hmacShaKeyFor(keyBytes); // 고정된 키 사용
+    }
+    
     // 이메일+ userId(PK) 포함
     public String generateToken(Authentication authentication, Long userId) {
         String username = authentication.getName();
@@ -25,7 +35,8 @@ public class JwtTokenProvider {
                 .claim("userId", userId)  // Pk 추가
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(key) // HS512 안전한 키 사용
+                .signWith(key, SignatureAlgorithm.HS512) // HS512 + 고정 키
+                //.signWith(key) // HS512 안전한 키 사용
                 .compact();
     }
 
