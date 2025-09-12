@@ -11,7 +11,7 @@ spring:
       ddl-auto: none
       dialect: org.hibernate.dialect.MariaDBDialect
   jwt:
-    secret: ${JWT_SECRET}  # 환경변수에서 불러오고, 없으면 default 값 사용
+    secret: ${JWT_SECRET:1c8UWNf/DwyesyNfLKwiR/M76kryQySEoaYrzQGWyiWHJ1DzqsGJM323NQRmliZnOmFfwj1yahSq1vhmm78mDg==}  # 환경변수에서 불러오고, 없으면 default 값 사용
   flyway:
     enabled: false # 수동으로 Bean을 등록하기 위해 비활성화
 
