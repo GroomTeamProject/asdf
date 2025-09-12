@@ -26,7 +26,7 @@ export default {
   name: 'MyPage',
   methods: {
     goToAddress() {
-      this.$router.push('/address'); // 주소관리 페이지 경로
+      this.$router.push('/profile/addresses'); // 주소관리 페이지 경로
     },
     goToProfile() {
       this.$router.push('/profile'); // 내정보수정 페이지 경로

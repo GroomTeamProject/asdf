@@ -5,6 +5,7 @@ import Login from '../pages/auth/Login.vue'
 import MyPage from '../pages/users/MyPage.vue'
 import ProfileEdit from '../pages/users/ProfileEdit.vue'
 import ChangePassword from '../pages/users/ChangePassword.vue'
+import AddressManagement from '../pages/users/AddressManagement.vue';
 //import Dashboard from '../pages/auth/Dashboard.vue'
 
 // 권한별 메인 페이지
@@ -23,6 +24,7 @@ const routes = [
   { path: '/my-page', name: 'MyPage', component: MyPage },
   { path: '/profile', name: 'ProfileEdit', component: ProfileEdit },
   { path: '/change-password', component: ChangePassword },
+  { path: '/profile/addresses', component: AddressManagement, name: 'AddressManagement' },
   { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
   { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
   { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
