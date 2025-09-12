@@ -53,10 +53,9 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: ./backend
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-backend:pr-${{ github.event.number }}
           ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-backend:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max

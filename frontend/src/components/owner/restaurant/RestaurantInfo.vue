@@ -163,6 +163,7 @@
     <div class="info-section">
       <div class="section-header">
         <h3>운영시간</h3>
+        <button @click="$emit('edit-hours')" class="edit-button">운영시간 수정</button>
       </div>
       
       <div class="hours-content">
@@ -200,7 +201,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'refresh'])
+const emit = defineEmits(['edit', 'refresh', 'edit-hours'])
 
 // 상태 관리
 const selectedStatus = ref('OPEN')

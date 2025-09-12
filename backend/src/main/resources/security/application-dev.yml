@@ -6,14 +6,12 @@ spring:
     url: ${DB_URL_DEV}
     username: ${DB_USERNAME_DEV}
     password: ${DB_PASSWORD_DEV}
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    locations: classpath:db/migration
   jpa:
     hibernate:
       ddl-auto: none
       dialect: org.hibernate.dialect.MariaDBDialect
+  flyway:
+    enabled: false # 수동으로 Bean을 등록하기 위해 비활성화
 
 cors:
   allowed-origins: ${ORIGIN_URL_DEV}

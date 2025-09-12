@@ -315,4 +315,33 @@ export const menuApi = {
     console.log('✅ 옵션 아이템 순서 정규화 성공');
     return response.data;   
   }),
+
+  // ================================
+  // 옵션 순서 변경 API 추가
+  // ================================
+
+  updateOptionGroupOrder: (menuId, groupId, orderData) => apiManager.queueRequest(async () => {
+    console.log('🔄 옵션 그룹 순서 변경 중...');
+    const response = await api.put(`/owner/menus/${menuId}/option-groups/${groupId}/order`, {
+      groupId: groupId,
+      menuId: menuId,
+      newPosition: orderData.newPosition,
+      reason: orderData.reason || '관리자에 의한 순서 조정'
+    });
+    console.log('✅ 옵션 그룹 순서 변경 성공');
+    return response.data;
+  }),
+
+  updateOptionItemOrder: (menuId, groupId, optionId, orderData) => apiManager.queueRequest(async () => {
+    console.log('🔄 옵션 아이템 순서 변경 중...');
+    const response = await api.put(`/owner/menus/${menuId}/option-groups/${groupId}/options/${optionId}/order`, {
+      optionId: optionId,
+      groupId: groupId,
+      menuId: menuId,
+      newPosition: orderData.newPosition,
+      reason: orderData.reason || '관리자에 의한 순서 조정'
+    });
+    console.log('✅ 옵션 아이템 순서 변경 성공');
+    return response.data;
+  }),
 };

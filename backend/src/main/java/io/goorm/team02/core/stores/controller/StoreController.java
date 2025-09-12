@@ -1,6 +1,8 @@
 package io.goorm.team02.core.stores.controller;
 
-import io.goorm.team02.core.stores.controller.dto.*;
+import io.goorm.team02.core.stores.controller.dto.dashboard.StoreDashboardResponse;
+import io.goorm.team02.core.stores.controller.dto.ordermanagement.*;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.*;
 import io.goorm.team02.core.stores.domain.Store;
 import io.goorm.team02.core.stores.domain.StoreHour;
 import io.goorm.team02.core.stores.service.StoreService;
@@ -307,4 +309,68 @@ public class StoreController {
         StoreStatusModifyResponse response = storeService.updateStoreStatus(request);
         return ResponseEntity.ok(response);
     }
+
+    // ================================
+    // 대시보드 (Dashboard)
+    // ================================
+
+    @GetMapping("/dashboard")
+    @Operation(summary = "가게 대시보드 조회", description = "가게 운영에 필요한 통계 정보를 조회합니다")
+    @Tag(name = "Store Dashboard")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "대시보드 조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "404", description = "가게를 찾을 수 없음")
+    })
+    public ResponseEntity<StoreDashboardResponse> getDashboard() {
+        StoreDashboardResponse dashboard = storeService.getDashboard();
+        return ResponseEntity.ok(dashboard);
+    }
+
+       // ================================
+      // 주문 관리 (Order Management)
+     // ================================
+
+
+//    @PutMapping("/orders/{orderId}/cooking-time")
+//    @Operation(summary = "예상 조리 시간 수정", description = "접수된 주문의 예상 조리 시간을 수정합니다")
+//    @Tag(name = "Order Management")
+//    @ApiResponses({
+//            @ApiResponse(responseCode = "200", description = "조리 시간 수정 성공"),
+//            @ApiResponse(responseCode = "400", description = "수정할 수 없는 주문 상태"),
+//            @ApiResponse(responseCode = "401", description = "인증 실패"),
+//            @ApiResponse(responseCode = "404", description = "주문을 찾을 수 없음")
+//    })
+//    public ResponseEntity<StoreOrderResponse> updateCookingTime(
+//            @Parameter(description = "주문 ID", required = true)
+//            @PathVariable Long orderId,
+//            @RequestBody StoreCookingTimeUpdateRequest request) {
+//        StoreOrderResponse response = storeService.updateCookingTime(orderId, request);
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    @GetMapping("/orders/notifications")
+//    @Operation(summary = "신규 주문 알림 조회", description = "읽지 않은 신규 주문 알림을 조회합니다")
+//    @Tag(name = "Order Notifications")
+//    @ApiResponses({
+//            @ApiResponse(responseCode = "200", description = "알림 조회 성공"),
+//            @ApiResponse(responseCode = "401", description = "인증 실패")
+//    })
+//    public ResponseEntity<OrderNotificationResponse> getNewOrderNotifications() {
+//        OrderNotificationResponse notifications = storeService.getNewOrderNotifications();
+//        return ResponseEntity.ok(notifications);
+//    }
+//
+//    @PutMapping("/orders/notifications/read")
+//    @Operation(summary = "주문 알림 읽음 처리", description = "주문 알림을 읽음으로 처리합니다")
+//    @Tag(name = "Order Notifications")
+//    @ApiResponses({
+//            @ApiResponse(responseCode = "200", description = "알림 읽음 처리 성공"),
+//            @ApiResponse(responseCode = "401", description = "인증 실패")
+//    })
+//    public ResponseEntity<Void> markNotificationsAsRead(
+//            @RequestBody List<Long> orderIds) {
+//        storeService.markNotificationsAsRead(orderIds);
+//        return ResponseEntity.ok().build();
+//    }
 }

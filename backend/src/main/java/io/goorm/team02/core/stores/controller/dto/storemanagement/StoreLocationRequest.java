@@ -1,8 +1,6 @@
 // StoreLocationRequest.java
-package io.goorm.team02.core.stores.controller.dto;
+package io.goorm.team02.core.stores.controller.dto.storemanagement;
 
-import java.math.BigDecimal;
-import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

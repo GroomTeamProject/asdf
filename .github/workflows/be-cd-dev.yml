@@ -36,11 +36,11 @@ jobs:
           --restart unless-stopped \
           -p 8080:8080 \
           -e SPRING_PROFILES_ACTIVE=dev \
-          -e DB_URL_DEV=${{ secrets.DB_URL_DEV }} \
-          -e DB_USERNAME_DEV=${{ secrets.DB_USERNAME_DEV }} \
-          -e DB_PASSWORD_DEV=${{ secrets.DB_PASSWORD_DEV }} \
-          -e ORIGIN_URL_DEV=${{ secrets.ORIGIN_URL_DEV }} \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          -e DB_URL_DEV="${{ secrets.DB_URL_DEV }}" \
+          -e DB_USERNAME_DEV="${{ secrets.DB_USERNAME_DEV }}" \
+          -e DB_PASSWORD_DEV="${{ secrets.DB_PASSWORD_DEV }}" \
+          -e ORIGIN_URL_DEV="${{ secrets.ORIGIN_URL_DEV }}" \
+          "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
     - name: Verify deployment
       run: |

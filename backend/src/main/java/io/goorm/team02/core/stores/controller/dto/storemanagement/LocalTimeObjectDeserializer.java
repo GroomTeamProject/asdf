@@ -1,4 +1,4 @@
-package io.goorm.team02.core.stores.controller.dto;
+package io.goorm.team02.core.stores.controller.dto.storemanagement;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;

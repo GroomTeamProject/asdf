@@ -37,6 +37,8 @@ class StoreApiManager {
 
 const apiManager = new StoreApiManager();
 
+
+
 export const storeApi = {
   // 가게 정보 조회
   getMyStore: () => apiManager.queueRequest(async () => {
@@ -45,6 +47,19 @@ export const storeApi = {
     console.log('✅ 가게 정보 조회 성공');
     return response.data;   
   }),
+
+  // 🔥 큐 없이 직접 호출하는 대시보드 함수 추가
+  getDashboardDirect: async () => {
+    console.log('🔄 대시보드 데이터 조회 중... (직접 호출)');
+    try {
+      const response = await api.get('/owner/store/dashboard');   
+      console.log('✅ 대시보드 데이터 조회 성공 (직접 호출)');
+      return response.data;
+    } catch (error) {
+      console.error('❌ 대시보드 API 호출 실패 (직접):', error);
+      throw error;
+    }
+  },
 
   // 가게 정보 수정
   updateStore: (storeData) => apiManager.queueRequest(async () => {
@@ -162,6 +177,42 @@ export const storeApi = {
     console.log('✅ 휴무일 삭제 성공');
     return response.data;   
   }),
+
+  // 운영시간 업데이트
+  updateStoreHours: (hoursData) => apiManager.queueRequest(async () => {
+    console.log('🔄 운영시간 업데이트 중...');
+    const response = await api.put('/owner/store/hours', hoursData);
+    console.log('✅ 운영시간 업데이트 성공');
+    return response.data;
+  }),
+
+  // 특정 요일 운영시간 업데이트
+  updateDayHours: (dayOfWeek, hourData) => apiManager.queueRequest(async () => {
+    console.log('🔄 특정 요일 운영시간 업데이트 중...');
+    const response = await api.put(`/owner/store/hours/${dayOfWeek}`, hourData);
+    console.log('✅ 특정 요일 운영시간 업데이트 성공');
+    return response.data;
+  }),
+
+  // 운영시간 초기 설정
+  createStoreHours: (hoursData) => apiManager.queueRequest(async () => {
+    console.log('🔄 운영시간 초기 설정 중...');
+    const response = await api.post('/owner/store/hours', hoursData);
+    console.log('✅ 운영시간 초기 설정 성공');
+    return response.data;
+  }),
+   /**
+   * 통합 대시보드 정보 조회 (기존 분리된 API들을 대체)
+   */
+  async getDashboard() {
+    try {
+      const response = await api.get('/owner/store/dashboard')
+      return response.data
+    } catch (error) {
+      console.error('대시보드 조회 실패:', error)
+      throw error
+    }
+  },
 
   createStore: (storeData) => apiManager.queueRequest(async () => {
     console.log('🔄 가게 등록 중...');

@@ -1,4 +1,4 @@
-package io.goorm.team02.core.stores.controller.dto;
+package io.goorm.team02.core.stores.controller.dto.storemanagement;
 
 import io.goorm.team02.core.stores.domain.enums.StoreCategory;
 import lombok.Getter;

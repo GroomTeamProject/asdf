@@ -1,4 +1,4 @@
-package io.goorm.team02.core.stores.controller.dto;
+package io.goorm.team02.core.stores.controller.dto.storemanagement;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;

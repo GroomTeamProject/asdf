@@ -48,13 +48,10 @@
         />
       </div>
 
-      <!-- Orders Tab -->
-      <div v-if="activeTab === 'orders'" class="tab-content">
-        <OrdersList 
-          :orders="orders" 
-          @update-status="updateOrderStatus"
-        />
-      </div>
+ <!-- 주문 관리 탭 -->
+  <div v-if="activeTab === 'orders'" class="tab-content">
+    <OrdersList :store-id="currentStoreId" />
+  </div>
 
       <!-- Menu Tab -->
       <div v-if="activeTab === 'menu'" class="tab-content">
@@ -72,6 +69,7 @@
       :restaurant="restaurant"
       :store-hours="storeHours"
       @edit="openEditRestaurantModal"
+      @edit-hours="openEditHoursModal"
       @refresh="handleRefresh"
     />
   </div>
@@ -91,6 +89,14 @@
       @close="cancelEdit"
       @save="saveRestaurantInfo"
     />
+
+    <EditStoreHoursModal
+    v-if="showEditHoursModal"
+    :store-hours="storeHours"
+    :loading="loading || isProcessing"
+    @close="cancelEditHours"
+    @save="saveStoreHours"
+  />
   </div>
 </template>
 
@@ -98,7 +104,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Store } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import { storeApi } from '@/api/owner/storeApi'
+import { storeApi  } from '@/api/owner/storeApi'
 
 // Components
 import TabNavigation from '@/components/owner/common/TabNavigation.vue'
@@ -110,6 +116,7 @@ import MenuList from '@/components/owner/menu/MenuList.vue'
 import RestaurantInfo from '@/components/owner/restaurant/RestaurantInfo.vue'
 import AddMenuModal from '@/components/owner/menu/AddMenuModal.vue'
 import EditRestaurantModal from '@/components/owner/restaurant/EditRestaurantModal.vue'
+import EditStoreHoursModal from '@/components/owner/restaurant/EditStoreHoursModal.vue'
 
 const router = useRouter()
 
@@ -120,10 +127,35 @@ const showEditRestaurantModal = ref(false)
 const loading = ref(false)
 const error = ref(null)
 const storeHours = ref([])
+const showEditHoursModal = ref(false)
 
 // 순차 처리를 위한 상태 관리
 const isProcessing = ref(false)
 const currentOperation = ref('')
+
+// 👇 currentStoreId 추가
+const currentStoreId = ref(null)
+
+// 👇 대시보드 통계 데이터 추가
+const dashboardStats = ref({
+  todayOrders: 0,
+  todayRevenue: 0,
+  todayOrderRate: 0,
+  weeklyOrders: 0,
+  weeklyRevenue: 0,
+  monthlyOrders: 0,
+  monthlyRevenue: 0,
+  ordersByStatus: {
+    pending: 0,
+    confirmed: 0,
+    preparing: 0,
+    ready: 0,
+    delivered: 0,
+    cancelled: 0
+  }
+})
+
+const recentOrdersData = ref([])
 
 // 가게 정보
 const restaurant = ref({
@@ -149,76 +181,21 @@ const restaurant = ref({
   isActive: true
 })
 
-// 목업 데이터 (나중에 실제 API로 교체 예정)
-const orders = ref([
-  {
-    id: '1',
-    customerName: '김고객',
-    items: [
-      { name: '후라이드 치킨', quantity: 1, price: 18000 },
-      { name: '치킨무', quantity: 1, price: 2000 }
-    ],
-    total: 20000,
-    status: 'pending',
-    orderTime: '2024-01-15 14:30'
-  },
-  {
-    id: '2',
-    customerName: '이고객',
-    items: [
-      { name: '양념 치킨', quantity: 2, price: 20000 }
-    ],
-    total: 40000,
-    status: 'preparing',
-    orderTime: '2024-01-15 14:25'
-  },
-  {
-    id: '3',
-    customerName: '박고객',
-    items: [
-      { name: '후라이드 치킨', quantity: 1, price: 18000 }
-    ],
-    total: 18000,
-    status: 'ready',
-    orderTime: '2024-01-15 14:20'
-  }
-])
+// 기존 목업 데이터들...
+const orders = ref([])
 
-const menuItems = ref([
-  {
-    id: '1',
-    name: '후라이드 치킨',
-    description: '바삭바삭한 클래식 후라이드',
-    price: 18000,
-    category: '치킨',
-    available: true
-  },
-  {
-    id: '2',
-    name: '양념 치킨',
-    description: '달콤매콤한 양념치킨',
-    price: 20000,
-    category: '치킨',
-    available: true
-  },
-  {
-    id: '3',
-    name: '치킨무',
-    description: '아삭한 치킨무',
-    price: 2000,
-    category: '사이드',
-    available: false
-  }
-])
+const menuItems = ref([])
 
-// 계산된 속성
-const recentOrders = computed(() => orders.value.slice(0, 3))
+// 계산된 속성 - 대시보드 데이터 기반으로 수정
+const recentOrders = computed(() => recentOrdersData.value.slice(0, 3))
 const todayStats = computed(() => ({
-  orders: orders.value.length,
-  revenue: orders.value.reduce((sum, order) => sum + order.total, 0)
+  orders: dashboardStats.value.todayOrders,
+  revenue: dashboardStats.value.todayRevenue,
+  orderRate: dashboardStats.value.todayOrderRate
 }))
 
-// API 호출 함수들
+
+// API 호출 함수들 - loadStoreInfo 수정
 const loadStoreInfo = async () => {
   if (isProcessing.value) {
     console.log('⚠️ 다른 작업이 진행 중입니다.')
@@ -235,6 +212,9 @@ const loadStoreInfo = async () => {
     const response = await storeApi.getMyStore()
     console.log('📦 API 응답:', response)
     
+    // 👇 currentStoreId 설정
+    currentStoreId.value = response.id
+
     // 백엔드 응답에 맞게 데이터 설정
     restaurant.value = {
       id: response.id || null,
@@ -269,11 +249,15 @@ const loadStoreInfo = async () => {
     }
     
     console.log('✅ 가게 정보 로드 완료:', restaurant.value.name)
+    console.log('🏪 현재 가게 ID:', currentStoreId.value)
+    
+    // 👇 가게 정보 로드 완료 후 대시보드 데이터 로드
+    await loadDashboardData()
     
   } catch (err) {
     console.error('❌ 가게 정보 로딩 실패:', err);
     
-    // 👈 404 에러면 가게 등록 페이지로 리다이렉트
+    // 404 에러면 가게 등록 페이지로 리다이렉트
     if (err.response?.status === 404) {
       console.log('📝 등록된 가게가 없음 - 가게 등록 페이지로 이동');
       alert('등록된 가게가 없습니다. 가게를 등록해주세요.');
@@ -282,11 +266,18 @@ const loadStoreInfo = async () => {
     }
     
     console.log('❌ API 연결 실패 - 목업 데이터 사용')
+    // 👇 목업 데이터 사용 시에도 임시 ID 설정
+    currentStoreId.value = 1
+    
     // 목업 데이터로 fallback
+    restaurant.value.id = 1
     restaurant.value.name = '테스트 치킨집'
     restaurant.value.category = 'CHICKEN'
     restaurant.value.rating = 4.5
     restaurant.value.totalOrders = 1250
+    
+    // 목업 데이터로도 대시보드 데이터 로드
+    await loadDashboardData()
     
   } finally {
     loading.value = false
@@ -295,27 +286,123 @@ const loadStoreInfo = async () => {
   }
 }
 
-const handleRefresh = async () => {
-  console.log('🔄 가게 정보 새로고침 요청됨')
-  await loadStoreInfo()
-}
-
-const openEditRestaurantModal = () => {
-  if (isProcessing.value) {
-    alert('다른 작업이 진행 중입니다. 잠시 후 다시 시도해주세요.')
+const loadDashboardData = async () => {
+  if (!currentStoreId.value) {
+    console.warn('⚠️ 가게 ID가 없어서 대시보드를 로드할 수 없습니다.')
     return
   }
-  showEditRestaurantModal.value = true
-}
 
-const cancelEdit = () => {
-  if (isProcessing.value) {
-    const confirmed = confirm('작업이 진행 중입니다. 정말 취소하시겠습니까?')
-    if (!confirmed) return
+  try {
+    currentOperation.value = '대시보드 데이터 로딩'
+    console.log('📊 통합 대시보드 데이터 로딩 중...', currentStoreId.value)
+    
+    // 통합 대시보드 API 호출
+    const dashboardResponse = await storeApi.getDashboard()
+    console.log('📈 대시보드 응답:', dashboardResponse)
+    
+    // 받은 데이터를 각각의 상태에 할당
+    // 1. 오늘 통계
+    dashboardStats.value = {
+      todayOrders: dashboardResponse.todayStats.orders || 0,
+      todayRevenue: dashboardResponse.todayStats.revenue || 0,
+      todayOrderRate: 0, // 백엔드에서 제공하지 않으면 0으로 설정
+      weeklyOrders: 0,   // 백엔드에서 제공하지 않으면 0으로 설정
+      weeklyRevenue: 0,  // 백엔드에서 제공하지 않으면 0으로 설정
+      monthlyOrders: 0,  // 백엔드에서 제공하지 않으면 0으로 설정
+      monthlyRevenue: 0, // 백엔드에서 제공하지 않으면 0으로 설정
+      ordersByStatus: {
+        pending: 0,
+        confirmed: 0,
+        preparing: 0,
+        ready: 0,
+        delivered: 0,
+        cancelled: 0
+      }
+    }
+    
+    // 2. 가게 정보 업데이트 (기존 restaurant.value에 추가 정보 병합)
+    if (dashboardResponse.restaurant) {
+      restaurant.value = {
+        ...restaurant.value, // 기존 정보 유지
+        id: dashboardResponse.restaurant.id || restaurant.value.id,
+        name: dashboardResponse.restaurant.name || restaurant.value.name,
+        rating: dashboardResponse.restaurant.rating || restaurant.value.rating,
+        reviewCount: dashboardResponse.restaurant.reviewCount || restaurant.value.reviewCount,
+        totalOrders: dashboardResponse.restaurant.totalOrders || restaurant.value.totalOrders
+      }
+    }
+    
+    // 3. 운영시간 정보 (이미 별도 API로 로드되므로 선택적으로 업데이트)
+    if (dashboardResponse.storeHours && dashboardResponse.storeHours.length > 0) {
+      storeHours.value = dashboardResponse.storeHours.map(hour => ({
+        dayOfWeek: hour.dayOfWeek,
+        openTime: hour.openTime,
+        closeTime: hour.closeTime,
+        isClosed: hour.isClosed
+      }))
+    }
+    
+    // 4. 최근 주문 목록
+    recentOrdersData.value = dashboardResponse.recentOrders?.map(order => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      total: order.total,
+      status: order.status,
+      orderTime: order.orderTime,
+      items: order.items?.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: 0 // 백엔드에서 제공하지 않으면 0으로 설정
+      })) || []
+    })) || []
+    
+    console.log('✅ 통합 대시보드 데이터 로딩 완료')
+    console.log('📊 통계:', dashboardStats.value)
+    console.log('🏪 가게:', restaurant.value.name)
+    console.log('🛒 최근 주문:', recentOrdersData.value.length, '건')
+    
+  } catch (error) {
+    console.warn('❌ 대시보드 데이터 로드 실패:', error)
+    
+    // 목업 데이터로 fallback
+    console.log('📊 목업 대시보드 데이터 사용')
+    dashboardStats.value = {
+      todayOrders: 15,
+      todayRevenue: 245000,
+      todayOrderRate: 12.5,
+      weeklyOrders: 98,
+      weeklyRevenue: 1580000,
+      monthlyOrders: 432,
+      monthlyRevenue: 6890000,
+      ordersByStatus: {
+        pending: 3,
+        confirmed: 5,
+        preparing: 2,
+        ready: 1,
+        delivered: 89,
+        cancelled: 2
+      }
+    }
+    
+    recentOrdersData.value = [
+      {
+        id: 1,
+        orderNumber: 'ORD-20241201-001',
+        customerName: '김고객',
+        items: [
+          { name: '후라이드치킨', quantity: 1, price: 18000 },
+          { name: '콜라', quantity: 2, price: 2000 }
+        ],
+        total: 22000,
+        status: 'DELIVERED',
+        orderTime: '2024-12-01 18:30:00'
+      }
+    ]
   }
-  showEditRestaurantModal.value = false
 }
 
+// saveRestaurantInfo 함수에서도 currentStoreId 업데이트
 const saveRestaurantInfo = async (formData) => {
   if (isProcessing.value) {
     alert('다른 작업이 진행 중입니다. 잠시 후 다시 시도해주세요.')
@@ -363,6 +450,9 @@ const saveRestaurantInfo = async (formData) => {
     const freshData = await storeApi.getMyStore()
     console.log('📦 최신 데이터:', freshData)
     
+    // 👇 currentStoreId도 업데이트
+    currentStoreId.value = freshData.id
+    
     // 명시적으로 모든 필드 업데이트
     restaurant.value = {
       id: freshData.id || null,
@@ -386,6 +476,7 @@ const saveRestaurantInfo = async (formData) => {
     }
     
     console.log('✅ 업데이트된 restaurant 데이터:', restaurant.value)
+    console.log('🏪 업데이트된 가게 ID:', currentStoreId.value)
     
     showEditRestaurantModal.value = false
     console.log('🎉 모든 정보 저장 및 업데이트 완료!')
@@ -394,6 +485,81 @@ const saveRestaurantInfo = async (formData) => {
   } catch (err) {
     console.error('❌ 서버 저장 실패:', err)
     alert('서버 저장에 실패했습니다: ' + (err.message || '알 수 없는 오류'))
+  } finally {
+    loading.value = false
+    isProcessing.value = false
+    currentOperation.value = ''
+  }
+}
+
+// 👇 handleRefresh 함수 수정 - 대시보드 데이터도 함께 새로고침
+const handleRefresh = async () => {
+  console.log('🔄 가게 정보 새로고침 요청됨')
+  await loadStoreInfo()
+  // loadStoreInfo에서 loadDashboardData를 호출하므로 별도 호출 불필요
+}
+
+// 나머지 함수들은 그대로...
+const openEditRestaurantModal = () => {
+  if (isProcessing.value) {
+    alert('다른 작업이 진행 중입니다. 잠시 후 다시 시도해주세요.')
+    return
+  }
+  showEditRestaurantModal.value = true
+}
+
+const cancelEdit = () => {
+  if (isProcessing.value) {
+    const confirmed = confirm('작업이 진행 중입니다. 정말 취소하시겠습니까?')
+    if (!confirmed) return
+  }
+  showEditRestaurantModal.value = false
+}
+
+const openEditHoursModal = () => {
+  if (isProcessing.value) {
+    alert('다른 작업이 진행 중입니다. 잠시 후 다시 시도해주세요.')
+    return
+  }
+  showEditHoursModal.value = true
+}
+
+const cancelEditHours = () => {
+  if (isProcessing.value) {
+    const confirmed = confirm('작업이 진행 중입니다. 정말 취소하시겠습니까?')
+    if (!confirmed) return
+  }
+  showEditHoursModal.value = false
+}
+
+const saveStoreHours = async (hoursData) => {
+  if (isProcessing.value) {
+    alert('다른 작업이 진행 중입니다. 잠시 후 다시 시도해주세요.')
+    return
+  }
+
+  try {
+    isProcessing.value = true
+    loading.value = true
+    currentOperation.value = '운영시간 저장'
+    
+    console.log('🔄 운영시간 저장 시작...', hoursData)
+    
+    await storeApi.updateStoreHours(hoursData)
+    
+    alert('운영시간이 성공적으로 저장되었습니다!')
+    showEditHoursModal.value = false
+    
+    // 최신 데이터 다시 로드
+    currentOperation.value = '최신 운영시간 불러오기'
+    const freshHours = await storeApi.getStoreHours()
+    storeHours.value = freshHours || []
+    
+    console.log('✅ 운영시간 저장 및 업데이트 완료!')
+    
+  } catch (error) {
+    console.error('❌ 운영시간 저장 실패:', error)
+    alert('운영시간 저장에 실패했습니다: ' + (error.message || '알 수 없는 오류'))
   } finally {
     loading.value = false
     isProcessing.value = false
@@ -479,7 +645,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 고정 크기 및 안정적인 레이아웃 */
+/* 기존 스타일 그대로 유지 */
 .owner-dashboard {
   min-height: 100vh;
   background-color: #f5f5f5;
@@ -500,8 +666,8 @@ onMounted(async () => {
 }
 
 .header-container {
-  max-width: 1400px; /* 고정 최대 너비 */
-  min-width: 1200px; /* 최소 너비 설정 */
+  max-width: 1400px;
+  min-width: 1200px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -549,8 +715,8 @@ onMounted(async () => {
 
 /* Main Container */
 .main-container {
-  max-width: 1400px; /* 고정 최대 너비 */
-  min-width: 1200px; /* 최소 너비 설정 */
+  max-width: 1400px;
+  min-width: 1200px;
   margin: 0 auto;
   padding: 1.5rem;
 }

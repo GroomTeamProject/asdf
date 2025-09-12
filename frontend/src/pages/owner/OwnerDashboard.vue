@@ -34,19 +34,19 @@
 
       <!-- Dashboard Tab -->
       <div v-if="activeTab === 'dashboard'" class="tab-content">
-        <StatsCards 
-          :today-stats="todayStats" 
-          :restaurant="restaurant" 
-          :store-hours="storeHours" 
-        />
-        <StoreStatusCard 
-          :restaurant="restaurant" 
-          :store-hours="storeHours" 
-        />
-        <RecentOrdersList 
-          :recent-orders="recentOrders" 
-        />
-      </div>
+      <StatsCards 
+        :today-stats="todayStats" 
+        :restaurant="dashboardData.restaurant" 
+        :store-hours="dashboardData.storeHours" 
+      />
+      <StoreStatusCard 
+        :restaurant="dashboardData.restaurant" 
+        :store-hours="dashboardData.storeHours" 
+      />
+      <RecentOrdersList 
+        :recent-orders="recentOrders" 
+      />
+    </div>
 
       <!-- Orders Tab -->
       <div v-if="activeTab === 'orders'" class="tab-content">
@@ -124,6 +124,23 @@ const storeHours = ref([])
 // 순차 처리를 위한 상태 관리
 const isProcessing = ref(false)
 const currentOperation = ref('')
+
+// 대시보드 데이터 - 백엔드 응답 구조에 맞게 수정
+const dashboardData = ref({
+  todayStats: {
+    orders: 0,
+    revenue: 0
+  },
+  restaurant: {
+    id: null,
+    name: '',
+    rating: 0,
+    reviewCount: 0,
+    totalOrders: 0
+  },
+  storeHours: [],
+  recentOrders: []
+})
 
 // 가게 정보
 const restaurant = ref({
@@ -211,83 +228,139 @@ const menuItems = ref([
   }
 ])
 
-// 계산된 속성
-const recentOrders = computed(() => orders.value.slice(0, 3))
-const todayStats = computed(() => ({
-  orders: orders.value.length,
-  revenue: orders.value.reduce((sum, order) => sum + order.total, 0)
-}))
+// 계산된 속성 - 대시보드 데이터 사용
+const recentOrders = computed(() => dashboardData.value.recentOrders || [])
+const todayStats = computed(() => dashboardData.value.todayStats || { orders: 0, revenue: 0 })
 
-// API 호출 함수들
-const loadStoreInfo = async () => {
-  if (isProcessing.value) {
-    console.log('⚠️ 다른 작업이 진행 중입니다.')
-    return
-  }
+// 대시보드 데이터 로드 함수 추가
+// const loadDashboardData = async () => {
+//   try {
+//     console.log('🔄 대시보드 데이터 로딩 중...')
+    
+//     // API 호출 확인을 위한 로그 추가
+//     console.log('📡 storeApi.getDashboard() 호출 시작')
+//     const response = await storeApi.getDashboard()
+//     console.log('📦 대시보드 API 응답:', response)
+    
+//     // 대시보드 데이터 설정
+//     dashboardData.value = {
+//       todayStats: response.todayStats || { orders: 0, revenue: 0 },
+//       restaurant: response.restaurant || { 
+//         id: null, 
+//         name: '', 
+//         rating: 0, 
+//         reviewCount: 0, 
+//         totalOrders: 0 
+//       },
+//       storeHours: response.storeHours || [],
+//       recentOrders: response.recentOrders || []
+//     }
+    
+//     console.log('✅ 대시보드 데이터 설정 완료:', dashboardData.value)
+    
+//   } catch (err) {
+//     console.error('❌ 대시보드 데이터 로드 실패:', err)
+//     console.error('❌ 에러 상세:', err.response?.data)
+//     console.error('❌ 상태 코드:', err.response?.status)
+    
+//     // 실패 시 목업 데이터 사용
+//     dashboardData.value = {
+//       todayStats: { orders: 15, revenue: 450000 },
+//       restaurant: { 
+//         id: 1, 
+//         name: '테스트 치킨집', 
+//         rating: 4.5, 
+//         reviewCount: 127, 
+//         totalOrders: 1234 
+//       },
+//       storeHours: [],
+//       recentOrders: []
+//     }
+//     console.log('📝 목업 데이터로 설정됨:', dashboardData.value)
+//   }
+// }
 
-  try {
-    isProcessing.value = true
-    currentOperation.value = '가게 정보 로딩'
-    loading.value = true
-    error.value = null
-    console.log('🔄 가게 정보 로딩 중...')
-    
-    const response = await storeApi.getMyStore()
-    console.log('📦 API 응답:', response)
-    
-    // 백엔드 응답에 맞게 데이터 설정
-    restaurant.value = {
-      id: response.id || null,
-      businessNumber: response.businessNumber || '',
-      name: response.name || '',
-      description: response.description || '',
-      phone: response.phone || '',
-      address: response.address || '',
-      detailAddress: response.detailAddress || '',
-      category: response.category || '',
-      minOrderAmount: response.minOrderAmount || 0,
-      deliveryFee: response.deliveryFee || 0,
-      deliveryTimeMin: response.deliveryTimeMin || 0,
-      deliveryTimeMax: response.deliveryTimeMax || 0,
-      imageUrl: response.imageUrl || '',
-      status: response.status || 'OPEN',
-      rating: response.rating || 0,
-      reviewCount: response.reviewCount || 0,
-      totalOrders: response.totalOrders || 0,
-      isActive: response.isActive !== undefined ? response.isActive : true
-    }
+// // API 호출 함수들
+// const loadStoreInfo = async () => {
+//   if (isProcessing.value) {
+//     console.log('⚠️ 다른 작업이 진행 중입니다.')
+//     return
+//   }
 
-    // 운영시간 정보 로드 (순차 처리)
-    try {
-      currentOperation.value = '운영시간 정보 로딩'
-      const hoursResponse = await storeApi.getStoreHours()
-      storeHours.value = hoursResponse || []
-      console.log('✅ 운영시간 로드 완료:', storeHours.value)
-    } catch (hoursError) {
-      console.warn('❌ 운영시간 로드 실패:', hoursError)
-      storeHours.value = []
-    }
+//   try {
+//     isProcessing.value = true
+//     loading.value = true
+//     error.value = null
+//     console.log('🔄 전체 데이터 로딩 시작...')
     
-    console.log('✅ 가게 정보 로드 완료:', restaurant.value.name)
+//     // 1. 대시보드 데이터 로드 (isProcessing 관리 없이)
+//     currentOperation.value = '대시보드 데이터 로딩'
+//     console.log('1️⃣ 대시보드 데이터 로드 시작')
+//     await loadDashboardData()  // 이제 isProcessing 체크 없음
+//     console.log('1️⃣ 대시보드 데이터 로드 완료')
     
-  } catch (err) {
-    console.log('❌ API 연결 실패 - 목업 데이터 사용')
-    // 목업 데이터로 fallback
-    restaurant.value.name = '테스트 치킨집'
-    restaurant.value.category = 'CHICKEN'
-    restaurant.value.rating = 4.5
-    restaurant.value.totalOrders = 1250
+//     // 2. 편집용 가게 정보 로드
+//     currentOperation.value = '가게 정보 로딩'
+//     console.log('2️⃣ 가게 정보 로드 시작')
+//     const response = await storeApi.getMyStore()
+//     console.log('2️⃣ 가게 정보 API 응답:', response)
     
-  } finally {
-    loading.value = false
-    isProcessing.value = false
-    currentOperation.value = ''
-  }
-}
+//     // 편집용 restaurant 객체 설정
+//     restaurant.value = {
+//       id: response.id || null,
+//       businessNumber: response.businessNumber || '',
+//       name: response.name || '',
+//       description: response.description || '',
+//       phone: response.phone || '',
+//       address: response.address || '',
+//       detailAddress: response.detailAddress || '',
+//       category: response.category || '',
+//       minOrderAmount: response.minOrderAmount || 0,
+//       deliveryFee: response.deliveryFee || 0,
+//       deliveryTimeMin: response.deliveryTimeMin || 0,
+//       deliveryTimeMax: response.deliveryTimeMax || 0,
+//       imageUrl: response.imageUrl || '',
+//       status: response.status || 'OPEN',
+//       rating: response.rating || 0,
+//       reviewCount: response.reviewCount || 0,
+//       totalOrders: response.totalOrders || 0,
+//       isActive: response.isActive !== undefined ? response.isActive : true
+//     }
+//     console.log('2️⃣ 편집용 가게 정보 설정 완료')
+
+//     // 3. 운영시간 정보 로드
+//     try {
+//       currentOperation.value = '운영시간 정보 로딩'
+//       console.log('3️⃣ 운영시간 정보 로드 시작')
+//       const hoursResponse = await storeApi.getStoreHours()
+//       storeHours.value = hoursResponse || []
+//       console.log('3️⃣ 운영시간 로드 완료:', storeHours.value)
+//     } catch (hoursError) {
+//       console.warn('❌ 운영시간 로드 실패:', hoursError)
+//       storeHours.value = []
+//     }
+    
+//     console.log('🎉 전체 데이터 로드 완료!')
+//     console.log('🏪 현재 가게 ID:', restaurant.value.id)
+    
+//   } catch (err) {
+//     console.log('❌ API 연결 실패 - 목업 데이터 사용')
+//     // 목업 데이터로 fallback
+//     restaurant.value.name = '테스트 치킨집'
+//     restaurant.value.category = 'CHICKEN'
+//     restaurant.value.rating = 4.5
+//     restaurant.value.totalOrders = 1250
+    
+//   } finally {
+//     loading.value = false
+//     isProcessing.value = false
+//     currentOperation.value = ''
+//   }
+// }
 
 const handleRefresh = async () => {
-  console.log('🔄 가게 정보 새로고침 요청됨')
-  await loadStoreInfo()
+  console.log('🔄 데이터 새로고침 요청됨')
+  await loadStoreInfo() // 전체 데이터 다시 로드
 }
 
 const openEditRestaurantModal = () => {
@@ -464,7 +537,104 @@ const goHome = () => {
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
   console.log('🚀 점주 관리 시스템 시작')
-  await loadStoreInfo()
+  console.log('🔥 onMounted 실행됨 - 테스트 시작!')
+
+  try {
+    console.log('🧪 테스트: 대시보드 API 직접 호출 (큐 우회)')
+    const dashboardResponse = await storeApi.getDashboardDirect()  // 🔥 이렇게 사용
+    console.log('🎯 대시보드 테스트 응답:', dashboardResponse)
+  } catch (error) {
+    console.error('❌ 대시보드 테스트 실패:', error)
+    console.error('❌ 에러 상태:', error.response?.status)
+    console.error('❌ 에러 메시지:', error.response?.data)
+  }
+  
+  try {
+    isProcessing.value = true
+    currentOperation.value = '데이터 로딩'
+    loading.value = true
+    
+    console.log('📡 모든 API 병렬 호출 시작')
+    
+    // 모든 API를 병렬로 호출
+    const [dashboardResult, storeResult, hoursResult] = await Promise.allSettled([
+      storeApi.getDashboard(),
+      storeApi.getMyStore(),
+      storeApi.getStoreHours()
+    ])
+    
+    // 1. 대시보드 데이터 처리
+    if (dashboardResult.status === 'fulfilled') {
+      console.log('📦 대시보드 API 응답:', dashboardResult.value)
+      dashboardData.value = {
+        todayStats: dashboardResult.value.todayStats || { orders: 0, revenue: 0 },
+        restaurant: dashboardResult.value.restaurant || { 
+          id: null, name: '', rating: 0, reviewCount: 0, totalOrders: 0 
+        },
+        storeHours: dashboardResult.value.storeHours || [],
+        recentOrders: dashboardResult.value.recentOrders || []
+      }
+      console.log('✅ 대시보드 데이터 설정 완료:', dashboardData.value)
+    } else {
+      console.error('❌ 대시보드 로드 실패:', dashboardResult.reason)
+      // 목업 데이터 설정
+      dashboardData.value = {
+        todayStats: { orders: 15, revenue: 450000 },
+        restaurant: { 
+          id: 1, name: '테스트 치킨집', rating: 4.5, reviewCount: 127, totalOrders: 1234 
+        },
+        storeHours: [],
+        recentOrders: []
+      }
+    }
+    
+    // 2. 가게 정보 처리
+    if (storeResult.status === 'fulfilled') {
+      const response = storeResult.value
+      console.log('📦 가게 정보 API 응답:', response)
+      restaurant.value = {
+        id: response.id || null,
+        businessNumber: response.businessNumber || '',
+        name: response.name || '',
+        description: response.description || '',
+        phone: response.phone || '',
+        address: response.address || '',
+        detailAddress: response.detailAddress || '',
+        category: response.category || '',
+        minOrderAmount: response.minOrderAmount || 0,
+        deliveryFee: response.deliveryFee || 0,
+        deliveryTimeMin: response.deliveryTimeMin || 0,
+        deliveryTimeMax: response.deliveryTimeMax || 0,
+        imageUrl: response.imageUrl || '',
+        status: response.status || 'OPEN',
+        rating: response.rating || 0,
+        reviewCount: response.reviewCount || 0,
+        totalOrders: response.totalOrders || 0,
+        isActive: response.isActive !== undefined ? response.isActive : true
+      }
+      console.log('✅ 가게 정보 설정 완료')
+    } else {
+      console.error('❌ 가게 정보 로드 실패:', storeResult.reason)
+    }
+    
+    // 3. 운영시간 처리
+    if (hoursResult.status === 'fulfilled') {
+      storeHours.value = hoursResult.value || []
+      console.log('✅ 운영시간 설정 완료:', storeHours.value)
+    } else {
+      console.error('❌ 운영시간 로드 실패:', hoursResult.reason)
+      storeHours.value = []
+    }
+    
+    console.log('🎉 모든 데이터 로드 완료!')
+    
+  } catch (err) {
+    console.error('❌ 전체 데이터 로드 실패:', err)
+  } finally {
+    loading.value = false
+    isProcessing.value = false
+    currentOperation.value = ''
+  }
 })
 </script>
 

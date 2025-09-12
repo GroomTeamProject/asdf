@@ -1,19 +1,27 @@
 package io.goorm.team02.core.stores.service;
 
-import io.goorm.team02.core.auth.security.JwtTokenProvider;
-import io.goorm.team02.core.auth.security.SecurityUtils;
-import io.goorm.team02.core.stores.controller.dto.StoreContactRequest;
-import io.goorm.team02.core.stores.controller.dto.StoreCreateRequest;
-import io.goorm.team02.core.stores.controller.dto.StoreDeliveryRequest;
-import io.goorm.team02.core.stores.controller.dto.StoreHolidayRequest;
-import io.goorm.team02.core.stores.controller.dto.StoreHolidayResponse;
-import io.goorm.team02.core.stores.controller.dto.StoreHourRequest;
-import io.goorm.team02.core.stores.controller.dto.StoreHourResponse;
-import io.goorm.team02.core.stores.controller.dto.StoreLocationRequest;
-import io.goorm.team02.core.stores.controller.dto.StoreStatusModifyResponse;
-import io.goorm.team02.core.stores.controller.dto.StoreStatusRequest;
-import io.goorm.team02.core.stores.controller.dto.StoreStatusResponse;
-import io.goorm.team02.core.stores.controller.dto.StoreUpdateRequest;
+import io.goorm.team02.core.orders.controller.dto.OrderResponse;
+import io.goorm.team02.core.orders.domain.Order;
+import io.goorm.team02.core.orders.service.OrderService;
+import io.goorm.team02.core.reviews.repository.ReviewRepository;
+import io.goorm.team02.core.stores.controller.dto.dashboard.RecentOrderInfo;
+import io.goorm.team02.core.stores.controller.dto.dashboard.StoreDashboardResponse;
+import io.goorm.team02.core.stores.controller.dto.ordermanagement.StoreOrderDetailResponse;
+import io.goorm.team02.core.stores.controller.dto.ordermanagement.StoreOrderItemDetailResponse;
+import io.goorm.team02.core.stores.controller.dto.ordermanagement.StoreOrderOptionResponse;
+import io.goorm.team02.core.stores.controller.dto.ordermanagement.StoreOrderResponse;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreContactRequest;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreCreateRequest;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreDeliveryRequest;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreHolidayRequest;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreHolidayResponse;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreHourRequest;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreHourResponse;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreLocationRequest;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreStatusModifyResponse;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreStatusRequest;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreStatusResponse;
+import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreUpdateRequest;
 import io.goorm.team02.core.stores.domain.Store;
 import io.goorm.team02.core.stores.domain.StoreHoliday;
 import io.goorm.team02.core.stores.domain.StoreHour;
@@ -22,6 +30,8 @@ import io.goorm.team02.core.stores.repository.StoreHourRepository;
 import io.goorm.team02.core.stores.domain.TempUser;
 import io.goorm.team02.core.stores.repository.StoreRepository;
 import io.goorm.team02.core.stores.repository.UserRepository;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -53,6 +63,8 @@ public class StoreService {
     private final UserRepository userRepository;
     private final StoreHourRepository storeHourRepository;
     private final StoreHolidayRepository storeHolidayRepository;
+    private final OrderService orderService;
+    private final ReviewRepository reviewRepository;
 
     /**
      * 가게 등록 (최초 1회)
@@ -784,4 +796,174 @@ public class StoreService {
 
         return "영업시간 정보를 확인해주세요";
     }
+
+    /**
+     * 가게 대시보드 데이터 조회
+     */
+    public StoreDashboardResponse getDashboard() {
+        log.info("=== 가게 대시보드 조회 시작 ===");
+
+        Long currentUserId = getCurrentUserId();
+        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+
+        Store store = getMyStore();
+        if (store == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없음");
+        }
+
+        try {
+            // 1. 오늘 통계 데이터
+            Long todayOrderCount = storeRepository.countTodayOrdersByStoreId(store.getId());
+            BigDecimal todayRevenue = storeRepository.getTodayRevenueByStoreId(store.getId());
+
+            StoreDashboardResponse.TodayStats todayStats = new StoreDashboardResponse.TodayStats(todayOrderCount, todayRevenue);
+
+            // 2. 가게 정보
+            BigDecimal storeRating = reviewRepository.findAverageRatingByStoreId(store.getId());
+            if (storeRating == null) {
+                storeRating = BigDecimal.ZERO;
+            }
+            Long reviewCount = reviewRepository.countByStoreId(store.getId());
+            Long totalOrderCount = storeRepository.countTotalOrdersByStoreId(store.getId());
+
+            StoreDashboardResponse.RestaurantInfo restaurant = new StoreDashboardResponse.RestaurantInfo(
+                    store.getId(),
+                    store.getName(),
+                    storeRating.setScale(1, java.math.RoundingMode.HALF_UP),
+                    reviewCount,
+                    totalOrderCount
+            );
+
+            // 3. 운영시간 정보
+            List<StoreDashboardResponse.StoreHourInfo> storeHours = store.getStoreHours().stream()
+                    .map(hour -> new StoreDashboardResponse.StoreHourInfo(
+                            hour.getDayOfWeek(),
+                            hour.getOpenTime() != null ? hour.getOpenTime().toString() : null,
+                            hour.getCloseTime() != null ? hour.getCloseTime().toString() : null,
+                            hour.getIsClosed()
+                    ))
+                    .collect(Collectors.toList());
+
+            // 4. 최근 주문 정보
+            List<StoreDashboardResponse.RecentOrderInfo> recentOrders = getRecentOrdersForDashboard(store.getId());
+
+            StoreDashboardResponse response = new StoreDashboardResponse(
+                    todayStats,
+                    restaurant,
+                    storeHours,
+                    recentOrders
+            );
+
+            log.info("대시보드 조회 완료 - 오늘 주문: {}건, 오늘 매출: {}원, 평점: {}",
+                    todayOrderCount, todayRevenue, storeRating);
+            log.info("=== 가게 대시보드 조회 완료 ===");
+
+            return response;
+
+        } catch (Exception e) {
+            log.error("대시보드 조회 실패: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "대시보드 조회 중 오류가 발생했습니다");
+        }
+    }
+
+    /**
+     * 대시보드용 최근 주문 정보 조회
+     */
+    private List<StoreDashboardResponse.RecentOrderInfo> getRecentOrdersForDashboard(Long storeId) {
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(0, 5);
+
+        List<Order> recentOrders = storeRepository.findRecentOrdersByStoreId(storeId, pageable);
+
+        return recentOrders.stream()
+                .map(order -> {
+                    // 주문 상태를 프론트엔드 형식으로 변환
+                    String frontendStatus = convertOrderStatusToFrontend(order.getStatus());
+
+                    // 주문 아이템 정보
+                    List<StoreDashboardResponse.OrderItemInfo> items = order.getOrderItems().stream()
+                            .map(item -> new StoreDashboardResponse.OrderItemInfo(
+                                    item.getMenuName(),
+                                    item.getQuantity()
+                            ))
+                            .collect(Collectors.toList());
+
+                    // 주문 시간 포맷팅
+                    String orderTime = order.getOrderedAt().format(
+                            java.time.format.DateTimeFormatter.ofPattern("MM월 dd일 HH:mm")
+                    );
+
+                    return new StoreDashboardResponse.RecentOrderInfo(  // 여기도 수정!
+                            order.getId(),
+                            order.getOrderNumber(),
+                            order.getUser() != null ? order.getUser().getName() : "알 수 없음",
+                            order.getTotalAmount(),
+                            frontendStatus,
+                            orderTime,
+                            items
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 주문 상태를 프론트엔드 형식으로 변환
+     */
+    private String convertOrderStatusToFrontend(io.goorm.team02.core.orders.domain.enums.OrderStatus status) {
+        switch (status) {
+            case PENDING: return "pending";
+            case ACCEPTED: return "preparing";
+            case COOKING: return "preparing";
+            case READY: return "ready";
+            case DELIVERED: return "delivered";
+            default: return status.toString().toLowerCase();
+        }
+    }
+
+    /**
+     * 긴급 주문 여부 판단
+     */
+    private boolean isUrgentOrder(Order order) {
+        // PENDING 상태이고 30분 이상 지난 주문
+        if (!"PENDING".equals(order.getStatus().toString())) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime orderedAt = order.getOrderedAt();
+
+        return orderedAt.isBefore(now.minusMinutes(30));
+    }
+
+    // 새로 추가할 메서드 - 오늘의 운영시간만 문자열로 반환
+    private String getTodayOperatingHours(Store store) {
+        LocalDateTime now = LocalDateTime.now();
+        int currentDayOfWeek = now.getDayOfWeek().getValue(); // 1=월요일, 7=일요일
+
+        // Store의 요일 체계에 맞게 변환 (0=일요일, 1=월요일 ... 6=토요일)
+        int storeDayOfWeek = currentDayOfWeek == 7 ? 0 : currentDayOfWeek;
+
+        Optional<StoreHour> todayHour = store.getStoreHours().stream()
+                .filter(hour -> hour.getDayOfWeek().equals(storeDayOfWeek))
+                .findFirst();
+
+        if (todayHour.isEmpty()) {
+            return "운영시간 미설정";
+        }
+
+        StoreHour hour = todayHour.get();
+
+        if (hour.getIsClosed()) {
+            return "휴무";
+        }
+
+        if (hour.getOpenTime() != null && hour.getCloseTime() != null) {
+            return String.format("%s - %s",
+                    hour.getOpenTime().toString(),
+                    hour.getCloseTime().toString());
+        }
+
+        return "운영시간 확인 필요";
+    }
+
 }

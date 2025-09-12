@@ -438,6 +438,61 @@ public class MenuController {
     }
 
     /**
+     * 옵션 그룹 순서 변경
+     */
+    @PutMapping("/{menuId}/option-groups/{groupId}/order")
+    @Operation(summary = "옵션 그룹 순서 변경", description = "옵션 그룹의 표시 순서를 변경합니다")
+    public ResponseEntity<MenuOptionGroupResponse> updateOptionGroupOrder(
+            @Parameter(description = "메뉴 ID", required = true, example = "1")
+            @PathVariable Long menuId,
+            @Parameter(description = "옵션 그룹 ID", required = true, example = "1")
+            @PathVariable Long groupId,
+            @Parameter(description = "옵션 그룹 순서 변경 요청", required = true)
+            @Valid @RequestBody OptionGroupOrderUpdateRequest request) {
+
+        // 요청 데이터 검증
+        if (!request.getMenuId().equals(menuId)) {
+            throw new IllegalArgumentException("요청의 메뉴 ID와 경로의 메뉴 ID가 일치하지 않습니다");
+        }
+        if (!request.getGroupId().equals(groupId)) {
+            throw new IllegalArgumentException("요청의 그룹 ID와 경로의 그룹 ID가 일치하지 않습니다");
+        }
+
+        MenuOption optionGroup = menuService.updateOptionGroupOrder(menuId, groupId, request);
+        return ResponseEntity.ok(MenuOptionGroupResponse.from(optionGroup));
+    }
+
+    /**
+     * 옵션 아이템 순서 변경
+     */
+    @PutMapping("/{menuId}/option-groups/{groupId}/options/{optionId}/order")
+    @Operation(summary = "옵션 아이템 순서 변경", description = "옵션 아이템의 표시 순서를 변경합니다")
+    public ResponseEntity<MenuOptionItemResponse> updateOptionItemOrder(
+            @Parameter(description = "메뉴 ID", required = true, example = "1")
+            @PathVariable Long menuId,
+            @Parameter(description = "옵션 그룹 ID", required = true, example = "1")
+            @PathVariable Long groupId,
+            @Parameter(description = "옵션 아이템 ID", required = true, example = "1")
+            @PathVariable Long optionId,
+            @Parameter(description = "옵션 아이템 순서 변경 요청", required = true)
+            @Valid @RequestBody OptionItemOrderUpdateRequest request) {
+
+        // 요청 데이터 검증
+        if (!request.getMenuId().equals(menuId)) {
+            throw new IllegalArgumentException("요청의 메뉴 ID와 경로의 메뉴 ID가 일치하지 않습니다");
+        }
+        if (!request.getGroupId().equals(groupId)) {
+            throw new IllegalArgumentException("요청의 그룹 ID와 경로의 그룹 ID가 일치하지 않습니다");
+        }
+        if (!request.getOptionId().equals(optionId)) {
+            throw new IllegalArgumentException("요청의 옵션 ID와 경로의 옵션 ID가 일치하지 않습니다");
+        }
+
+        MenuOptionItem optionItem = menuService.updateOptionItemOrder(menuId, groupId, optionId, request);
+        return ResponseEntity.ok(MenuOptionItemResponse.from(optionItem));
+    }
+
+    /**
      * 옵션 그룹 순서 정규화 (유틸리티)
      */
     @PutMapping("/{menuId}/option-groups/normalize-order")
