@@ -27,4 +27,6 @@ public interface MenuCategoryRepository extends JpaRepository<MenuCategory, Long
                                            @Param("excludeId") Long excludeId);
 
     long countByStoreIdAndIsActiveTrue(Long storeId);
+
+    Optional<MenuCategory> findByIdAndStoreIdAndIsActiveTrue(Long id, Long storeId);
 }

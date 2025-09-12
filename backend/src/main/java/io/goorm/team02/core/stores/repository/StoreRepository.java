@@ -78,4 +78,23 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
     List<Order> findOrdersByStoreIdAndStatusIn(@Param("storeId") Long storeId,
                                                @Param("statuses") java.util.List<io.goorm.team02.core.orders.domain.enums.OrderStatus> statuses);
 
+
+    // ================================
+    // Customer API Methods
+    // ================================
+
+    /**
+     * 활성화된 모든 가게 조회 (고객용)
+     */
+    List<Store> findByIsActiveTrue();
+
+    /**
+     * ID로 활성화된 가게 조회 (고객용)
+     */
+    Optional<Store> findByIdAndIsActiveTrue(Long id);
+
+    /**
+     * ID로 활성화된 가게 존재 여부 확인 (고객용)
+     */
+    boolean existsByIdAndIsActiveTrue(Long id);
 }

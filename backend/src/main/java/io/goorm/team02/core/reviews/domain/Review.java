@@ -13,10 +13,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "reviews")
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class Review extends BaseEntity {
 
 	@Id
@@ -41,13 +46,82 @@ public class Review extends BaseEntity {
 	@Column(columnDefinition = "TEXT")
 	private String content;
 
-	@Column(columnDefinition = "JSON")
-	private String imageUrls; // ["url1", "url2"]
-
+	@Column(name = "owner_reply", columnDefinition = "TEXT")
 	private String ownerReply;
+
+	@Column(name = "owner_replied_at")
 	private LocalDateTime ownerRepliedAt;
 
-	@Column(nullable = false)
+	@Column(name = "is_reported", nullable = false)
 	private Boolean isReported = false;
 
+
+	// ================================
+	// Domain Logic
+	// ================================
+
+	/**
+	 * 리뷰 검증
+	 */
+	public void validate() {
+		if (user == null) {
+			throw new IllegalStateException("사용자 정보가 필요합니다");
+		}
+		if (store == null) {
+			throw new IllegalStateException("가게 정보가 필요합니다");
+		}
+		if (order == null) {
+			throw new IllegalStateException("주문 정보가 필요합니다");
+		}
+		if (rating == null || rating < 1 || rating > 5) {
+			throw new IllegalStateException("평점은 1~5 사이여야 합니다");
+		}
+	}
+
+	/**
+	 * 사장님 답글 작성
+	 */
+	public void addOwnerReply(String reply) {
+		if (reply == null || reply.trim().isEmpty()) {
+			throw new IllegalArgumentException("답글 내용이 필요합니다");
+		}
+		this.ownerReply = reply;
+		this.ownerRepliedAt = LocalDateTime.now();
+	}
+
+	/**
+	 * 리뷰 신고
+	 */
+	public void report() {
+		this.isReported = true;
+	}
+
+	/**
+	 * 리뷰 수정
+	 */
+	public void update(Integer rating, String content) {
+		if (rating == null || rating < 1 || rating > 5) {
+			throw new IllegalArgumentException("평점은 1~5 사이여야 합니다");
+		}
+		this.rating = rating;
+		this.content = content;
+	}
+
+	// ================================
+	// Factory Method
+	// ================================
+	public static Review create(Order order, User user, Store store, Integer rating, String content) {
+		Review review = new Review();
+		review.setOrder(order);
+		review.setUser(user);
+		review.setStore(store);
+		review.setRating(rating);
+		review.setContent(content);
+		review.setIsReported(false);
+
+		// 리뷰 검증
+		review.validate();
+
+		return review;
+	}
 }

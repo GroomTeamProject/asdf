@@ -35,8 +35,7 @@ public record OrderResponse(
         String cancelReason,
         Integer minCookingTime,
         Integer maxCookingTime,
-        List<OrderItemResponse> orderItems
-) {
+        List<OrderItemResponse> orderItems) {
 
     public static OrderResponse from(Order order) {
         return new OrderResponse(
@@ -67,8 +66,7 @@ public record OrderResponse(
                 order.getMaxCookingTime(),
                 order.getOrderItems().stream()
                         .map(OrderItemResponse::from)
-                        .toList()
-        );
+                        .toList());
     }
 
     public record OrderItemResponse(
@@ -78,8 +76,7 @@ public record OrderResponse(
             BigDecimal menuPrice,
             Integer quantity,
             BigDecimal totalPrice,
-            List<OrderItemOptionResponse> options
-    ) {
+            List<OrderItemOptionResponse> options) {
 
         public static OrderItemResponse from(OrderItem orderItem) {
             return new OrderItemResponse(
@@ -91,8 +88,7 @@ public record OrderResponse(
                     orderItem.getTotalPrice(),
                     orderItem.getOptions().stream()
                             .map(OrderItemOptionResponse::from)
-                            .toList()
-            );
+                            .toList());
         }
     }
 
@@ -100,16 +96,14 @@ public record OrderResponse(
             Long id,
             String optionName,
             String optionItemName,
-            BigDecimal additionalPrice
-    ) {
+            BigDecimal additionalPrice) {
 
         public static OrderItemOptionResponse from(OrderItemOption option) {
             return new OrderItemOptionResponse(
                     option.getId(),
                     option.getOptionName(),
                     option.getOptionItemName(),
-                    option.getAdditionalPrice()
-            );
+                    option.getAdditionalPrice());
         }
     }
 }
