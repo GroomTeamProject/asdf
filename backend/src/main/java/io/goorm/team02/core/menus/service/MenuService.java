@@ -1,6 +1,7 @@
 package io.goorm.team02.core.menus.service;
 
 import io.goorm.team02.core.auth.security.SecurityUtils;
+import io.goorm.team02.core.common.service.S3Service;
 import io.goorm.team02.core.menus.controller.dto.categorycreate.CategoryMoveRequest;
 import io.goorm.team02.core.menus.controller.dto.categorycreate.CategoryOrderUpdateRequest;
 import io.goorm.team02.core.menus.controller.dto.categorycreate.MenuCategoryCreateRequest;
@@ -46,6 +47,7 @@ public class MenuService {
     private final MenuOptionRepository menuOptionRepository;      // 추가
     private final MenuOptionItemRepository menuOptionItemRepository; // 추가
     private final StoreRepository storeRepository;
+    private final S3Service s3Service;
     //private final UserRepository userRepository;
 
 //    /**
@@ -1835,7 +1837,7 @@ public class MenuService {
     }
 
     /**
-     * 메뉴 이미지 업로드
+     * 메뉴 이미지 업로드 - S3 연동 완성
      */
     @Transactional
     public String uploadMenuImage(Long menuId, MultipartFile file) {
@@ -1868,28 +1870,31 @@ public class MenuService {
         log.info("메뉴 조회 완료 - 메뉴명: {}, 기존 이미지: {}",
                 menu.getName(), menu.getImageUrl() != null ? "있음" : "없음");
 
-        // 파일 유효성 검증
-        validateImageFile(file);
+        String oldImageUrl = menu.getImageUrl();
 
         try {
-            // 이미지 파일 업로드 처리
-            String imageUrl = processImageUpload(file, menu);
-
-            // 기존 이미지가 있다면 삭제 처리 (선택사항)
-            if (menu.getImageUrl() != null && !menu.getImageUrl().isEmpty()) {
-                log.info("기존 이미지 삭제 처리: {}", menu.getImageUrl());
-                // TODO: 실제 파일 삭제 로직 (S3, 로컬 파일시스템 등)
-                deleteImageFile(menu.getImageUrl());
-            }
+            // S3에 메뉴 이미지 업로드
+            String newImageUrl = s3Service.uploadMenuImage(file, store.getId());
+            log.info("S3 메뉴 이미지 업로드 성공 - Store ID: {}, URL: {}", store.getId(), newImageUrl);
 
             // 메뉴 이미지 URL 업데이트
-            menu.updateImageUrl(imageUrl);
+            menu.updateImageUrl(newImageUrl);
             menuRepository.save(menu);
 
-            log.info("메뉴 이미지 업로드 완료! 메뉴: {}, 이미지 URL: {}", menu.getName(), imageUrl);
+            // 기존 이미지가 있다면 S3에서 삭제
+            if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+                try {
+                    s3Service.deleteFile(oldImageUrl);
+                    log.info("기존 메뉴 이미지 삭제 완료: {}", oldImageUrl);
+                } catch (Exception e) {
+                    log.warn("기존 메뉴 이미지 삭제 실패 (무시): {}", e.getMessage());
+                }
+            }
+
+            log.info("메뉴 이미지 업로드 완료! 메뉴: {}, 이미지 URL: {}", menu.getName(), newImageUrl);
             log.info("=== 메뉴 이미지 업로드 종료 ===");
 
-            return imageUrl;
+            return newImageUrl;
 
         } catch (Exception e) {
             log.error("메뉴 이미지 업로드 실패", e);
@@ -1898,7 +1903,7 @@ public class MenuService {
     }
 
     /**
-     * 메뉴 이미지 삭제
+     * 메뉴 이미지 삭제 - S3 연동 완성
      */
     @Transactional
     public void deleteMenuImage(Long menuId, Long imageId) {
@@ -1925,24 +1930,23 @@ public class MenuService {
         log.info("메뉴 조회 완료 - 메뉴명: {}, 현재 이미지: {}",
                 menu.getName(), menu.getImageUrl() != null ? "있음" : "없음");
 
-        // 현재 구조에서는 메뉴당 하나의 이미지만 지원하므로 imageId는 검증용으로만 사용
-        // 실제 다중 이미지를 지원하려면 별도의 MenuImage 엔티티가 필요
+        // 삭제할 이미지가 있는지 확인
         if (menu.getImageUrl() == null || menu.getImageUrl().isEmpty()) {
             log.warn("삭제할 이미지가 없습니다. 메뉴: {}", menu.getName());
             throw new RuntimeException("삭제할 이미지가 없습니다");
         }
 
-        // imageId 검증 (간단한 방식: URL의 해시값이나 파일명으로 검증)
+        // imageId 검증 (간단한 방식)
         if (!isValidImageId(menu.getImageUrl(), imageId)) {
             log.error("잘못된 이미지 ID입니다. 메뉴 ID: {}, 이미지 ID: {}", menuId, imageId);
             throw new RuntimeException("잘못된 이미지 ID입니다");
         }
 
         try {
-            // 실제 이미지 파일 삭제
+            // S3에서 이미지 파일 삭제
             String imageUrl = menu.getImageUrl();
-            log.info("이미지 파일 삭제 처리 중: {}", imageUrl);
-            deleteImageFile(imageUrl);
+            log.info("S3에서 메뉴 이미지 삭제 처리 중: {}", imageUrl);
+            s3Service.deleteFile(imageUrl);
 
             // 메뉴의 이미지 URL 제거
             menu.removeImage();
@@ -2020,29 +2024,6 @@ public class MenuService {
         return lastDot > 0 ? filename.substring(lastDot) : "";
     }
 
-    /**
-     * 이미지 업로드 처리
-     */
-    private String processImageUpload(MultipartFile file, Menu menu) throws Exception {
-        log.info("이미지 업로드 처리 중...");
-
-        // 파일명 생성 (중복 방지)
-        String originalFilename = file.getOriginalFilename();
-        String extension = getFileExtension(originalFilename);
-        String newFilename = generateUniqueFilename(menu, extension);
-
-        log.info("생성된 파일명: {}", newFilename);
-
-        // TODO: 실제 파일 저장 로직 구현
-        // 예시: S3 업로드
-        String imageUrl = uploadToS3(file, newFilename);
-
-        // 또는 로컬 파일시스템에 저장
-        // String imageUrl = uploadToLocalFileSystem(file, newFilename);
-
-        log.info("이미지 업로드 완료 - URL: {}", imageUrl);
-        return imageUrl;
-    }
 
     /**
      * 고유 파일명 생성
@@ -2054,16 +2035,6 @@ public class MenuService {
         // 메뉴 ID + 타임스탬프 + 랜덤값으로 고유 파일명 생성
         String randomSuffix = UUID.randomUUID().toString().substring(0, 8);
         return String.format("menu_%d_%s_%s%s", menu.getId(), timestamp, randomSuffix, extension);
-    }
-
-    /**
-     * S3에 이미지 업로드 (구현 필요)
-     */
-    private String uploadToS3(MultipartFile file, String filename) throws Exception {
-        // TODO: AWS S3 SDK를 사용한 업로드 로직 구현
-        // 임시로 더미 URL 반환
-        log.warn("S3 업로드 로직이 구현되지 않았습니다. 더미 URL을 반환합니다.");
-        return "https://example-bucket.s3.amazonaws.com/menu-images/" + filename;
     }
 
     /**
@@ -2086,26 +2057,6 @@ public class MenuService {
         return "/images/menu/" + filename;
     }
 
-    /**
-     * 이미지 파일 삭제
-     */
-    private void deleteImageFile(String imageUrl) {
-        try {
-            log.info("이미지 파일 삭제 중: {}", imageUrl);
-
-            // TODO: 실제 파일 삭제 로직 구현
-            // S3에서 삭제
-            // deleteFromS3(imageUrl);
-
-            // 또는 로컬 파일시스템에서 삭제
-            // deleteFromLocalFileSystem(imageUrl);
-
-            log.info("이미지 파일 삭제 완료");
-        } catch (Exception e) {
-            log.error("이미지 파일 삭제 실패: {}", imageUrl, e);
-            // 파일 삭제 실패는 치명적이지 않으므로 예외를 던지지 않음
-        }
-    }
 
     /**
      * 이미지 ID 유효성 검증

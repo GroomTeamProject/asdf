@@ -9,7 +9,7 @@ import org.springframework.context.annotation.DependsOn;
 import javax.sql.DataSource;
 
 @Configuration
-@Profile({ "local", "dev" })
+@Profile({ "local", "dev", "test" })
 public class FlywaySeedConfig {
 
     @Bean

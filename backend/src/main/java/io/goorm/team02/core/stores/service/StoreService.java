@@ -1,5 +1,6 @@
 package io.goorm.team02.core.stores.service;
 
+import io.goorm.team02.core.common.service.S3Service;
 import io.goorm.team02.core.orders.controller.dto.OrderResponse;
 import io.goorm.team02.core.orders.domain.Order;
 import io.goorm.team02.core.orders.service.OrderService;
@@ -65,6 +66,7 @@ public class StoreService {
     private final StoreHolidayRepository storeHolidayRepository;
     private final OrderService orderService;
     private final ReviewRepository reviewRepository;
+    private final S3Service s3Service;
 
     /**
      * 가게 등록 (최초 1회)
@@ -386,17 +388,36 @@ public class StoreService {
         log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
 
         Store store = getMyStore();
+        Long storeId = store.getId();
+        String oldImageUrl = store.getImageUrl();
 
-        // TODO: S3 업로드 로직 구현 필요
-        String newImageUrl = file.getOriginalFilename(); // 임시 처리
+        try {
+            // S3에 새 이미지 업로드 (storeId 폴더에)
+            String newImageUrl = s3Service.uploadFile(file, storeId);
+            log.info("S3 업로드 성공 - Store ID: {}, URL: {}", storeId, newImageUrl);
 
-        log.info("이미지 URL 변경: {} -> {}", store.getImageUrl(), newImageUrl);
-        store.setImageUrl(newImageUrl);
+            // DB에 새 URL 저장
+            log.info("이미지 URL 변경: {} -> {}", oldImageUrl, newImageUrl);
+            store.setImageUrl(newImageUrl);
+            Store savedStore = storeRepository.save(store);
 
-        Store savedStore = storeRepository.save(store);
-        log.info("=== 가게 이미지 수정 완료 ===");
+            // 기존 이미지 삭제 (새 이미지 저장 후)
+            if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+                try {
+                    s3Service.deleteFile(oldImageUrl);
+                    log.info("기존 이미지 삭제 완료: {}", oldImageUrl);
+                } catch (Exception e) {
+                    log.warn("기존 이미지 삭제 실패 (무시): {}", e.getMessage());
+                }
+            }
 
-        return savedStore.getImageUrl();
+            log.info("=== 가게 이미지 수정 완료 ===");
+            return savedStore.getImageUrl();
+
+        } catch (Exception e) {
+            log.error("이미지 업로드 실패 - Store ID: {}, 오류: {}", storeId, e.getMessage());
+            throw new RuntimeException("이미지 업로드에 실패했습니다: " + e.getMessage());
+        }
     }
 
     /**
@@ -410,12 +431,29 @@ public class StoreService {
         log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
 
         Store store = getMyStore();
+        Long storeId = store.getId();
+        String currentImageUrl = store.getImageUrl();
 
-        log.info("이미지 URL 삭제: {}", store.getImageUrl());
-        store.setImageUrl(null);
+        if (currentImageUrl == null || currentImageUrl.isEmpty()) {
+            log.info("삭제할 이미지가 없습니다 - Store ID: {}", storeId);
+            return;
+        }
 
-        storeRepository.save(store);
-        log.info("=== 가게 이미지 삭제 완료 ===");
+        try {
+            // S3에서 이미지 삭제
+            s3Service.deleteFile(currentImageUrl);
+            log.info("S3에서 이미지 삭제 완료 - Store ID: {}, URL: {}", storeId, currentImageUrl);
+
+            // DB에서 URL 제거
+            store.setImageUrl(null);
+            storeRepository.save(store);
+
+            log.info("=== 가게 이미지 삭제 완료 - Store ID: {} ===", storeId);
+
+        } catch (Exception e) {
+            log.error("이미지 삭제 실패 - Store ID: {}, 오류: {}", storeId, e.getMessage());
+            throw new RuntimeException("이미지 삭제에 실패했습니다: " + e.getMessage());
+        }
     }
 
     /**

@@ -99,4 +99,14 @@ public interface OrderControllerDocs {
             @Parameter(description = "주문 ID", required = true) @PathVariable Long orderId,
             @RequestBody OrderCancelRequest request);
 
+    @Operation(summary = "[배달기사] 픽업 가능한 주문 목록 조회",
+            description = "조리 완료된 주문들을 조회합니다 (READY 상태)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "픽업 가능한 주문 목록 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 파라미터")
+    })
+    List<OrderResponse> getAvailableOrders(
+            @Parameter(description = "가게 ID (선택사항, 특정 가게의 주문만 조회)")
+            @RequestParam(value = "storeId", required = false) Long storeId);
+
 }

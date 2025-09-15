@@ -1,5 +1,7 @@
 package io.goorm.team02.core.orders.domain;
 
+import io.goorm.team02.core.TestEnv;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,7 +11,7 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("OrderItemOption 도메인 테스트")
-class OrderItemOptionTest {
+class OrderItemOptionTest extends TestEnv {
 
     private OrderItemOption orderItemOption;
 

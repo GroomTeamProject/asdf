@@ -103,4 +103,12 @@ public class OrderController implements OrderControllerDocs {
         return orderStatusService.cancelOrder(orderId, request);
     }
 
+    /**
+     * 픽업 가능한 주문 목록 조회 (배달 기사용)
+     */
+    @GetMapping("/delivery/available")
+    public List<OrderResponse> getAvailableOrders(
+            @RequestParam(value = "storeId", required = false) Long storeId) {
+        return orderService.getAvailableOrders(storeId);
+    }
 }

@@ -1,6 +1,8 @@
 package io.goorm.team02.core.orders.domain;
 
 import io.goorm.team02.core.menus.domain.Menu;
+import io.goorm.team02.core.TestEnv;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,7 +14,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("OrderItem 도메인 테스트")
-class OrderItemTest {
+class OrderItemTest extends TestEnv {
 
     private OrderItem orderItem;
     private Order order;

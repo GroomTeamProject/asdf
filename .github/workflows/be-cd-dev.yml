@@ -1,16 +1,19 @@
-name: Springboot CD - Deploy (develop)
+name: (develop) Springboot CD - Deploy 
 
 on:
   pull_request:
     types: [closed]
     branches: [ develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/**'
 
 env:
   REGISTRY: docker.io
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/team02-backend
 
 jobs:
-  deploy:
+  deploy_backend:
     runs-on: [self-hosted, ec2, dev]
     if: github.event.pull_request.merged == true
     steps:
@@ -40,6 +43,11 @@ jobs:
           -e DB_USERNAME_DEV="${{ secrets.DB_USERNAME_DEV }}" \
           -e DB_PASSWORD_DEV="${{ secrets.DB_PASSWORD_DEV }}" \
           -e ORIGIN_URL_DEV="${{ secrets.ORIGIN_URL_DEV }}" \
+          -e JWT_SECRET_DEV="${{ secrets.JWT_SECRET_DEV }}" \
+          -e AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+          -e AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
+          -e AWS_REGION="${{ secrets.AWS_REGION }}" \
+          -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
           "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
     - name: Verify deployment
@@ -52,3 +60,7 @@ jobs:
           docker logs springboot-app
           exit 1
         fi
+
+    - name: Clean up unused Docker images
+      run: docker image prune -af
+

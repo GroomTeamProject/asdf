@@ -33,3 +33,17 @@ spring:
     import: classpath:security/application-test.yml
     activate:
       on-profile: test
+
+---
+
+# 파일 업로드 설정
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# 커스텀 설정
+app:
+  s3:
+    folder: store

@@ -1,22 +1,31 @@
 spring:
   datasource:
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:testdb;MODE=MYSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password: 
-  flyway:
-    enabled: false
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-      dialect: org.hibernate.dialect.H2Dialect
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
   h2:
     console:
       enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+      dialect: org.hibernate.dialect.MariaDBDialect
+  flyway:
+    enabled: false
 
 cors:
   allowed-origins: http://localhost:5173
+---
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:test-access-key}
+      secret-key: ${AWS_SECRET_KEY:test-secret-key}
+    s3:
+      bucket: ${AWS_S3_BUCKET:test-bucket}
+    region:
+      static: ${AWS_REGION:us-east-1}
+    stack:
+      auto: false

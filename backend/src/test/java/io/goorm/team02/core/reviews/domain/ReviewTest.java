@@ -3,17 +3,17 @@ package io.goorm.team02.core.reviews.domain;
 import io.goorm.team02.core.orders.domain.Order;
 import io.goorm.team02.core.stores.domain.Store;
 import io.goorm.team02.core.users.domain.User;
+import io.goorm.team02.core.TestEnv;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Review 도메인 테스트")
-class ReviewTest {
+class ReviewTest extends TestEnv {
 
     private Review review;
     private Order order;

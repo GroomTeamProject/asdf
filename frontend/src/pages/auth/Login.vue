@@ -64,7 +64,7 @@ export default {
         // 3️⃣ 로그인 후 권한에 맞는 페이지로 이동 (예: 대시보드)
         //this.$router.push('/dashboard') // /dashboard 라우트는 나중에 만들어 주세요
         if (userType === 'CUSTOMER') {
-          this.$router.push('/customer-main')
+          this.$router.push('/customer/stores')
         } else if (userType === 'OWNER') {
           this.$router.push('/owner-main')
         } else if (userType === 'RIDER') {

@@ -1,7 +1,9 @@
 package io.goorm.team02.core.orders.service;
 
 import io.goorm.team02.core.orders.controller.dto.OrderRequest;
+import io.goorm.team02.core.orders.controller.dto.OrderResponse;
 import io.goorm.team02.core.orders.domain.Order;
+import io.goorm.team02.core.orders.domain.enums.OrderStatus;
 import io.goorm.team02.core.orders.repository.OrderRepository;
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
@@ -99,6 +101,37 @@ public class OrderService {
         });
 
         return order;
+    }
+    /**
+     * 픽업 가능한 주문 목록 조회 (READY 상태)
+     */
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAvailableOrders(Long storeId) {
+        List<Order> orders;
+
+        if (storeId != null) {
+            // 특정 가게의 READY 상태 주문들
+            orders = orderRepository.findByStoreIdAndStatus(storeId, OrderStatus.READY);
+        } else {
+            // 모든 가게의 READY 상태 주문들
+            orders = orderRepository.findByStatus(OrderStatus.READY);
+        }
+
+        // 지연 로딩 처리
+        orders.forEach(this::loadOrderDetails);
+
+        return orders.stream()
+                .map(OrderResponse::from)
+                .toList();
+    }
+
+    /**
+     * 주문 상세 정보 지연 로딩 처리 (중복 코드 제거)
+     */
+    private void loadOrderDetails(Order order) {
+        order.getOrderItems().forEach(orderItem -> {
+            orderItem.getOptions().size(); // 지연 로딩 트리거
+        });
     }
 
     // ================================
