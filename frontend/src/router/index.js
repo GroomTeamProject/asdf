@@ -5,6 +5,8 @@ import Home from '../pages/Home.vue'
 import Signup from '../pages/auth/Signup.vue'
 import Login from '../pages/auth/Login.vue'
 
+//import StoreRegistration from '../pages/owner/StoreRegistration.vue'
+
 // 권한별 메인 페이지(임시)
 import CustomerMain from '../pages/customer/CustomerMain.vue'
 import OwnerMain from '../pages/owner/OwnerMain.vue'
@@ -40,9 +42,10 @@ const routes = [
       { path: '/profile', name: 'ProfileEdit', component: ProfileEdit },
       { path: '/change-password', component: ChangePassword },
       { path: '/profile/addresses', component: AddressManagement, name: 'AddressManagement' },
+      { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
+      
       { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
       { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
-      { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
       { path: '/driver-main', component: DriverMain, meta: { role: 'RIDER' } },
     ],
   },

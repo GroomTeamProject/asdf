@@ -2,6 +2,7 @@ package io.goorm.team02.core.users.controller;
 
 import io.goorm.team02.core.users.controller.dto.ProfileResponse;
 import io.goorm.team02.core.users.controller.dto.ProfileUpdateRequest;
+import io.goorm.team02.core.auth.security.SecurityUtils;
 import io.goorm.team02.core.users.controller.dto.ProfilePasswordEdit;
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.service.UserService;
@@ -43,6 +44,14 @@ public class ProfileController {
     ) {
         userService.changePassword(userDetails.getUsername(), request.getCurrentPassword(), request.getNewPassword());
         return ResponseEntity.ok("Password changed successfully");
+    }
+
+    // 계정 삭제
+    @DeleteMapping("/me/deactivate")
+    public ResponseEntity<Void> deactivateUser() {
+        Long userId = SecurityUtils.getCurrentUserId(); // 로그인한 사용자 ID 가져오기
+        userService.deactivateUser(userId);
+        return ResponseEntity.noContent().build();
     }
 
 }

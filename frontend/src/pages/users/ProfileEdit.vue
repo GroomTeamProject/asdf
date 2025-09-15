@@ -55,6 +55,7 @@ export default {
         const response = await api.put('/users/me', this.form);
         alert('내 정보가 업데이트되었습니다.');
         this.form = response.data; // 서버에서 업데이트된 데이터 반영
+        this.$router.push('/my-page'); // 업데이트 후 마이페이지로 이동
       } catch (error) {
         console.error('프로필 업데이트 실패:', error);
         alert('프로필 업데이트 실패');

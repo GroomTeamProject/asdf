@@ -21,15 +21,21 @@ public class AuthService {
 
     public LoginResponse login(String email, String password) {
         try {
+            // DB에서 사용자 정보 조회
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // 탈퇴 여부 확인 
+            if (!user.getIsActive()) { // isActive: Soft Delete용 필드
+                throw new RuntimeException("탈퇴한 계정입니다.");  // 휴면 계정입니다로 수정
+            }
+
             // 이메일/비밀번호 인증
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, password)
             );
 
-            // DB에서 사용자 정보 조회
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-                    
+                        
             // 인증 성공 → JWT 발급
             String token = jwtTokenProvider.generateToken(authentication,user.getId());
 

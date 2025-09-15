@@ -3,6 +3,8 @@ package io.goorm.team02.core.auth.service;
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +18,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        if (!user.getIsActive()) {
+            throw new DisabledException("탈퇴한 계정입니다.");
+        }
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())

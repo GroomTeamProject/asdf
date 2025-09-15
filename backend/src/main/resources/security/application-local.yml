@@ -18,8 +18,6 @@ spring:
 cors:
   allowed-origins: ${ORIGIN_URL_LOCAL}
 
-<<<<<<< HEAD
-=======
 cloud:
   aws:
     credentials:
@@ -31,4 +29,4 @@ cloud:
       static: ${AWS_REGION}
     stack:
       auto: false
->>>>>>> develop
+

@@ -10,6 +10,9 @@ import io.goorm.team02.core.users.repository.UserinfoRepository;
 import io.goorm.team02.core.users.domain.UserAddress;
 import io.goorm.team02.core.users.repository.UserAddressRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import io.goorm.team02.core.users.controller.dto.ProfileUpdateRequest;
@@ -99,6 +102,23 @@ public class UserService {
 
         // 새 비밀번호 인코딩 후 저장
         user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    // 계정삭제
+    @Transactional
+    public void deactivateUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        // 기존 이메일 가져오기
+        String originalEmail = user.getEmail();
+
+        // 개인정보 마스킹 : 이메일로
+        user.setEmail("deleted_" + userId + "_" + originalEmail);
+        user.setName("탈퇴회원"+"("+user.getName()+")");
+
+        user.setIsActive(false); // 비활성화
+
         userRepository.save(user);
     }
 
