@@ -67,6 +67,7 @@ public class SecurityConfig {
 
                         //공통접근
                         .requestMatchers("/api/auth/**", "/error").permitAll() // 로그인/회원가입 허용
+                        .requestMatchers("/api/roles/**").permitAll()  //역할변경 테스트
 
                         // 마이페이지 접근 허용
                         .requestMatchers("/api/users/me/password",

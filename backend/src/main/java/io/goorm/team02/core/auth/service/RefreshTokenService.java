@@ -30,8 +30,8 @@ public class RefreshTokenService {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setToken(token);
-        //refreshToken.setExpiryDate(LocalDateTime.now().plusDays(7)); // 7일 만료
-        refreshToken.setExpiryDate(LocalDateTime.now().plusSeconds(20)); // 테스트
+        refreshToken.setExpiryDate(LocalDateTime.now().plusDays(7)); // 7일 만료
+        //refreshToken.setExpiryDate(LocalDateTime.now().plusSeconds(20)); // 테스트
         return refreshTokenRepository.save(refreshToken);
     }
 

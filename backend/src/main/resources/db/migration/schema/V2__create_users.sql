@@ -45,6 +45,14 @@ CREATE TABLE refresh_token (
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- 1️⃣ user_role 테이블 생성
+CREATE TABLE `user_role` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `role` ENUM('CUSTOMER', 'OWNER', 'RIDER') NOT NULL,
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
 
 
 -- indexes

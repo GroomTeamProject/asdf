@@ -7,7 +7,9 @@ import io.goorm.team02.core.auth.controller.dto.SignupRequest;
 import io.goorm.team02.core.auth.controller.dto.SignupResponse;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
 import io.goorm.team02.core.users.domain.UserAddress;
+import io.goorm.team02.core.users.domain.UserRole;
 import io.goorm.team02.core.users.repository.UserAddressRepository;
+import io.goorm.team02.core.users.repository.UserRoleRepository;
 import io.goorm.team02.core.users.controller.dto.UserUpdateRequest;
 import io.goorm.team02.core.users.controller.dto.UserAddressRequest;
 
@@ -25,6 +27,7 @@ public class UserService {
     private final UserinfoRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserAddressRepository userAddressRepository;
+    private final UserRoleRepository userRoleRepository;
 
     /**
      * 사용자 ID로 사용자 정보 조회
@@ -277,6 +280,14 @@ public class UserService {
         user.setPhoneVerified(false);
 
         User savedUser = userRepository.save(user);
+
+        // 회원가입시 user_type roles db에 저장
+        UserRole role = new UserRole();
+        role.setUser(savedUser);
+        //role.setRole(UserRole.Role.valueOf(request.getUserType().name()));
+        role.setRole(request.getUserType().name());
+        userRoleRepository.save(role);
+        userRoleRepository.save(role);
 
         // UserAddress 저장
         UserAddress address = new UserAddress();

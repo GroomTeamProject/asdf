@@ -11,3 +11,15 @@ INSERT INTO `user_addresses` (`user_id`, `address_name`, `address`, `detail_addr
 (1, '집', '서울시 강남구 역삼동 123-45', '101호', '06292', 37.5665, 126.9780, TRUE),
 (1, '회사', '서울시 서초구 서초동 456-78', '5층', '06620', 37.4947, 127.0276, FALSE),
 (2, '집', '서울시 마포구 홍대입구역 789-12', '203호', '04066', 37.5563, 126.9226, TRUE);
+
+
+-- user_role 데이터
+-- 고객 계정
+INSERT INTO `user_role` (`user_id`, `role`) VALUES
+(1, 'CUSTOMER'),
+(2, 'CUSTOMER');
+
+-- 점주 계정
+INSERT INTO `user_role` (`user_id`, `role`) VALUES
+(3, 'OWNER'),
+(4, 'OWNER');
