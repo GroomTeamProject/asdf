@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../pages/Home.vue'
 import Signup from '../pages/auth/Signup.vue'
 import Login from '../pages/auth/Login.vue'
+import Main from '../pages/auth/Main.vue'
 import StoreRegistration from '../pages/owner/StoreRegistration.vue'
 
 // 권한별 메인 페이지
@@ -17,11 +18,13 @@ import { customerRoutes } from './customerRoutes.js'
 const routes = [
   {
     path: '/',
+    redirect: '/login',
     component: DefaultLayout,
     children: [
       { path: '', component: Home },
       { path: '/signup', component: Signup },
       { path: '/login', component: Login },
+      { path: '/main-page', component: Main },
       { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
       { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
       { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
@@ -49,13 +52,15 @@ router.beforeEach((to, from, next) => {
 
   // 로그인 안 돼 있으면 로그인 페이지로
   if (!token) {
+    alert('로그인이 필요한 페이지입니다.')
     return next('/login')
+    // 
   }
 
   // 라우트 메타에 role이 있으면 체크
   if (to.meta.role && to.meta.role !== userType) {
     alert('접근 권한이 없습니다!')
-    return next('/')
+    return next('/main-page')
   }
 
   next()

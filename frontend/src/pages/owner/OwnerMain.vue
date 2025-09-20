@@ -634,7 +634,7 @@ const goHome = () => {
     const confirmed = confirm('작업이 진행 중입니다. 정말 이동하시겠습니까?')
     if (!confirmed) return
   }
-  router.push('/')
+  router.push('/main-page')
 }
 
 // 컴포넌트 마운트 시 데이터 로드
