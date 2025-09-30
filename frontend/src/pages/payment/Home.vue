@@ -52,17 +52,3 @@ export default {
 }
 </script>
 
-<style lang="postcss">
-:root {
-  --font-size: 14px;
-}
-html {
-  font-size: var(--font-size);
-}
-.wireframe-button {
-  @apply border-2 border-gray-400 bg-gray-50 text-gray-700 hover:bg-gray-200 transition-colors;
-}
-.wireframe-card {
-  @apply border-2 border-gray-300 bg-white;
-}
-</style>

@@ -1,5 +1,6 @@
 server:
   port: 8080
+  shutdown: immediate
 spring:
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
@@ -24,5 +25,11 @@ cloud:
       static: ${AWS_REGION}
     stack:
       auto: false
+
 jwt:
-  secret: ${JWT_SECRET_DEV}
+  secret: ${JWT_SECRET}
+  expiration: 3600000
+
+toss:
+  clientKey: ${TOSS_CLIENT_KEY}
+  secretKey: ${TOSS_SECRET_KEY}

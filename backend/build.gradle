@@ -1,16 +1,16 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.5'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'io.goorm.team02'
-version = '0.0.1-SNAPSHOT' + new Date().format('yyyy-MM-dd-HHmm')
+version = '0.0.1-SNAPSHOT-' + new Date().format('yyyy-MM-dd-HHmm')
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 configurations {
@@ -20,7 +20,7 @@ configurations {
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
@@ -57,8 +57,12 @@ dependencies {
 	// AWS S3 - 최신 SDK 사용
 	implementation 'software.amazon.awssdk:s3:2.20.56'
 	implementation 'software.amazon.awssdk:auth:2.20.56'
+
+	// Bucket4j core
+	implementation 'com.bucket4j:bucket4j_jdk8-core:8.10.1'
+	implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

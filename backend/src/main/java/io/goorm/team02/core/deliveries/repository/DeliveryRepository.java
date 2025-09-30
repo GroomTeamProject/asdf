@@ -1,6 +1,6 @@
-// io.goorm.team02.core.deliveries.repository.DeliveryRepository
 package io.goorm.team02.core.deliveries.repository;
 
+import io.goorm.team02.core.deliveries.controller.dto.DeliveryResponse;
 import io.goorm.team02.core.deliveries.domain.Delivery;
 import io.goorm.team02.core.deliveries.domain.enums.DeliveryStatus;
 import org.springframework.data.domain.Page;
@@ -11,76 +11,62 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
-public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
-    Page<Delivery> findByStatus(DeliveryStatus status, Pageable pageable);
-
-    Page<Delivery> findByRiderIdAndStatusIn(String riderId, Collection<DeliveryStatus> statuses, Pageable pageable);
-
-    Page<Delivery> findByRiderIdAndStatus(String riderId, DeliveryStatus status, Pageable pageable);
-
-
+public interface DeliveryRepository extends JpaRepository<Delivery,Long> {
 
     @Query("SELECT COUNT (d.id) FROM Delivery d " +
             "WHERE d.rider.id = :riderId " +
-            "AND d.createdAt >= :start " +
-            "AND d.createdAt < :end " +
+            "AND d.deliveredAt >= :start " +
+            "AND d.deliveredAt < :end " +
             "AND d.status = :status")
     Long countByRiderId(@Param("riderId") Long riderId,
-                              @Param("start") LocalDateTime start,
-                              @Param("end") LocalDateTime end,
-                              @Param("status") DeliveryStatus status);
+                        @Param("start") LocalDateTime start,
+                        @Param("end") LocalDateTime end,
+                        @Param("status") DeliveryStatus status);
 
 
     @Query("SELECT SUM(d.deliveryFee) FROM Delivery d " +
             "WHERE d.rider.id = :riderId " +
-            "AND d.createdAt >= :start " +
-            "AND d.createdAt < :end " +
+            "AND d.deliveredAt >= :start " +
+            "AND d.deliveredAt < :end " +
             "AND d.status = :status")
     Long sumFeeByRiderAndDate(@Param("riderId") Long riderId,
                               @Param("start") LocalDateTime start,
                               @Param("end") LocalDateTime end,
                               @Param("status") DeliveryStatus status);
 
-    @Query(
-            value = "SELECT FLOOR(AVG(TIMESTAMPDIFF(MINUTE, accepted_at, delivered_at))) " +
-                    "FROM deliveries " +
-                    "WHERE status = 'DELIVERED' " +
-                    "AND rider_id = :riderId",
+    @Query(value = "SELECT FLOOR(AVG(TIMESTAMPDIFF(MINUTE, d.accepted_at, d.delivered_at))) " +
+            "FROM deliveries d " +
+            "WHERE d.rider_id = :riderId " +
+            "AND d.delivered_at >= :start " +
+            "AND d.delivered_at < :end " +
+            "AND d.status = :status",
             nativeQuery = true
     )
-    Long findAvgDeliveryMinutes(@Param("riderId") Long riderId);
+    Long findAvgDeliveryMinutes(@Param("riderId" ) Long riderId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("status") String status);
 
-    Optional<Delivery> findByOrder_Id(Long orderId); // 주문으로 배달 조회
+    Delivery findByOrderId(Long orderId);
 
-    @Query("""
-    select d.status
-    from Delivery d
-    where d.rider.id = :riderId 
-    order by d.id desc
-  """)
-    Optional<DeliveryStatus> findTop1StatusByRiderId(@Param("riderId") Long riderId);
+    Optional<Delivery> findByRiderIdAndStatus(Long riderId, DeliveryStatus status);
 
-    @Query("select count(d) from Delivery d where d.rider.id=:riderId")
-    long smokeCount(@Param("riderId") Long riderId);
 
-    long countByRider_Id(Long riderId);
+    @Query("SELECT d FROM Delivery d " +
+            "WHERE d.rider.id = :riderId " +
+            "AND d.status IN :statuses")
+    Optional<Delivery> findByRiderIdAndStatusIn(@Param("riderId") Long riderId,
+                                                @Param("statuses") Collection<DeliveryStatus> statuses);
 
-    Optional<Delivery> findTop1ByRider_IdOrderByIdDesc(Long riderId);
 
-    // 엔티티 1건
-    Optional<Delivery> findTop1ByRider_IdAndStatusInOrderByIdDesc(
-            Long riderId, Collection<DeliveryStatus> statuses);
 
-    // 상태만 1건
-    @Query("""
-  select d.status
-  from Delivery d
-  where d.rider.id = :riderId and d.status in :st
-  order by d.id desc
-""")
-    Optional<DeliveryStatus> findTop1StatusInProgress(@Param("riderId") Long riderId,
-                                                      @Param("st") Collection<DeliveryStatus> st);
+    @Query("select new io.goorm.team02.core.deliveries.controller.dto.DeliveryResponse(" +
+            "d.id, o.id, r.id, d.pickupAddress, d.deliveryAddress, " +
+            "d.estimatedTime, d.distanceKm, d.acceptedAt, d.pickedUpAt, d.deliveredAt, d.deliveryFee) " +
+            "from Delivery d " +
+            "join d.order o " +
+            "left join d.rider r " +
+            "where r.id = :riderId")
+    List<DeliveryResponse> findDeliveriesByRiderId(@Param("riderId") Long riderId);
 
 }

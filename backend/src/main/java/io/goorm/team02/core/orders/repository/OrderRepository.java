@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
@@ -69,4 +70,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "WHERE o.store.id = :storeId AND o.status = :status " +
             "ORDER BY o.cookingCompletedAt ASC")
     List<Order> findByStoreIdAndStatus(@Param("storeId") Long storeId, @Param("status") OrderStatus status);
+
+    Optional<Order> findTopByUserIdOrderByOrderedAtDesc(Long userId);
+
 }

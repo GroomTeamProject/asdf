@@ -42,8 +42,10 @@ export default {
 
     // 배달비 계산
     const deliveryFee = computed(() => {
-      // TODO: 가게별 배달비 설정
-      return totalAmount.value >= 15000 ? 0 : 3000
+      const storeInfo = cartStore.items[0].storeInfo
+      const storeDeliveryFee = storeInfo?.deliveryFee || 0
+      
+      return storeDeliveryFee
     })
 
     // 할인 금액 계산

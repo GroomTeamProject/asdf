@@ -4,36 +4,37 @@ import io.goorm.team02.core.common.domain.BaseEntity;
 import io.goorm.team02.core.deliveries.domain.enums.DeliveryStatus;
 import io.goorm.team02.core.orders.domain.Order;
 import io.goorm.team02.core.users.domain.User;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Entity
 @Table(name = "deliveries")
-@lombok.Getter
-@lombok.NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Delivery extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne @JoinColumn(name = "order_id", nullable = false)
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
-    @ManyToOne @JoinColumn(name = "rider_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rider_id")
     private User rider;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -48,40 +49,65 @@ public class Delivery extends BaseEntity {
     private Integer estimatedTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @lombok.Setter
-    @lombok.Getter
-    private DeliveryStatus status = DeliveryStatus.REQUESTED;
+   //@Column(nullable = false)
+    @Setter
+    private DeliveryStatus status;// = DeliveryStatus.REQUESTED;
 
-    @lombok.Setter private LocalDateTime acceptedAt;
-    @lombok.Setter private LocalDateTime pickedUpAt;
-    @lombok.Setter private LocalDateTime deliveredAt;
+    @Setter private LocalDateTime acceptedAt;
+    @Setter private LocalDateTime pickedUpAt;
+    @Setter private LocalDateTime deliveredAt;
 
     @OneToMany(mappedBy = "delivery", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DeliveryLocation> locations;
+    private List<DeliveryLocation> locations = new ArrayList<>();
 
-    // 필요하면 requestedAt도 게터만 유지
-    private LocalDateTime requestedAt = LocalDateTime.now();
+    private LocalDateTime requestedAt;
 
-    @lombok.Setter
+    @Setter
     @Column(precision = 10, scale = 2)
     private BigDecimal deliveryFee = BigDecimal.ZERO;
 
-    public void assignRider(User rider) {
-        this.rider = rider;
+    @PrePersist
+    private void onCreate() {
+        /*
+        if (requestedAt == null) requestedAt = LocalDateTime.now();
+        if (status == null) status = DeliveryStatus.REQUESTED;
+        if (deliveryFee == null) deliveryFee = BigDecimal.ZERO;
+         */
     }
 
-    public static Delivery create(Order order, User rider) {
-        Delivery delivery = new Delivery();
-        delivery.order = order;
-        delivery.rider = rider;
-        delivery.pickupAddress = order.getStoreAddress();
-        delivery.deliveryAddress = order.getDeliveryAddress();
-        delivery.deliveryFee = order.getDeliveryFee();
-        delivery.status = DeliveryStatus.ACCEPTED;
-        delivery.acceptedAt = LocalDateTime.now();
-        delivery.requestedAt = LocalDateTime.now();
+    public static Delivery accept(Order order, User rider) {
+        Delivery d = new Delivery();
+        d.order = order;
+        d.rider = rider;
+        d.status = DeliveryStatus.ACCEPTED;
+        d.acceptedAt = LocalDateTime.now();
+        d.pickupAddress   = join(order.getStoreAddress(),    order.getStoreDetailAddress());
+        d.deliveryAddress = join(order.getDeliveryAddress(), order.getDeliveryDetailAddress());
+        d.deliveryFee = order.getDeliveryFee() != null ? order.getDeliveryFee() : BigDecimal.ZERO;
+        return d;
+    }
 
-        return delivery;
+    private static String join(String a, String b) {
+        return Stream.of(a, b).filter(Objects::nonNull).collect(Collectors.joining(" "));
+    }
+
+    public void pickup() {
+        if(this.status == DeliveryStatus.ACCEPTED){
+            this.status = DeliveryStatus.PICKED_UP;
+            this.pickedUpAt = LocalDateTime.now();
+
+        }else{
+            throw new IllegalArgumentException("Delivery status is not accepted");
+        }
+    }
+
+    public void complete() {
+        if(this.status == DeliveryStatus.PICKED_UP){
+            this.status = DeliveryStatus.DELIVERED;
+            this.deliveredAt = LocalDateTime.now();
+
+        }else{
+            throw  new IllegalArgumentException("Delivery status is not picked up");
+        }
     }
 }

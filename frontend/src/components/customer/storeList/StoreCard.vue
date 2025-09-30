@@ -3,10 +3,19 @@
     @click="onClick"
     class="cursor-pointer bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
   >
-    <div class="image-placeholder aspect-video w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-      <div class="text-center">
-        <div class="text-4xl mb-2">🍽️</div>
-        <span class="text-gray-500 text-sm">가게 이미지</span>
+    <div class="aspect-video w-full overflow-hidden">
+      <img 
+        v-if="store.imageUrl" 
+        :src="store.imageUrl" 
+        :alt="store.name"
+        class="w-full h-full object-cover"
+        @error="handleImageError"
+      />
+      <div v-else class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+        <div class="text-center">
+          <div class="text-4xl mb-2">🍽️</div>
+          <span class="text-gray-500 text-sm">가게 이미지</span>
+        </div>
       </div>
     </div>
     <div class="p-4">
@@ -62,12 +71,38 @@ export default {
   setup(props) {
     const router = useRouter()
 
-    const onClick = () => {
+    /*const onClick = () => {
       router.push(`/customer/stores/${props.store.id}`)
+    }*/
+
+    const onClick = () => {
+      const userType = localStorage.getItem('userType')  // 로그인 상태 확인
+
+      if (!userType) {
+        alert('로그인이 필요한 기능입니다.')
+        router.push('/login')
+        return
+      }
+
+      if (userType != 'CUSTOMER') {
+        alert('고객만 주문할 수 있습니다.')
+        return
+      }
+
+  // CUSTOMER만 접근 가능
+  router.push(`/customer/stores/${props.store.id}`)
+}
+
+
+
+    const handleImageError = (event) => {
+      // 이미지 로드 실패 시 기본 이미지로 대체
+      event.target.style.display = 'none'
     }
 
     return {
       onClick,
+      handleImageError,
     }
   },
 }

@@ -1,4 +1,3 @@
-// 고객 페이지 컴포넌트 import
 import CustomerMain from '../pages/customer/CustomerMain.vue'
 import StoreList from '../pages/customer/StoreList.vue'
 import StoreDetail from '../pages/customer/StoreDetail.vue'

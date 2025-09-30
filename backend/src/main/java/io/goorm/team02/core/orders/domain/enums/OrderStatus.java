@@ -1,6 +1,7 @@
 package io.goorm.team02.core.orders.domain.enums;
 
 public enum OrderStatus {
+	PAID,
 	PENDING,
 	ACCEPTED,
 	COOKING,
@@ -10,3 +11,4 @@ public enum OrderStatus {
 	CANCELLED,
 	REJECTED
 }
+

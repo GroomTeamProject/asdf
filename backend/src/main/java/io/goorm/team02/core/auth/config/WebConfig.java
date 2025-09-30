@@ -1,12 +1,21 @@
 package io.goorm.team02.core.auth.config;
 
+import io.goorm.team02.core.auth.service.CurrentUserArgumentResolver;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.List;
+
 @Configuration
-public class WebConfig {
+@RequiredArgsConstructor
+public class WebConfig implements WebMvcConfigurer {
+
+	private final CurrentUserArgumentResolver currentUserArgumentResolver;
 
 	@Bean
 	public WebMvcConfigurer corsConfigurer() {
@@ -22,4 +31,9 @@ public class WebConfig {
 		};
 	}
 
+
+	@Override
+	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+		resolvers.add(currentUserArgumentResolver);
+	}
 }

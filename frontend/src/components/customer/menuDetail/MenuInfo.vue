@@ -1,8 +1,17 @@
 <template>
   <div class="h-full bg-white rounded-lg p-6 shadow space-y-6">
     <!-- 메뉴 이미지 -->
-    <div class="image-placeholder w-full h-80 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center rounded-lg">
-      <span class="text-gray-500 text-lg">IMAGE</span>
+    <div class="w-full h-80 overflow-hidden rounded-lg">
+      <img 
+        v-if="menuItem.imageUrl" 
+        :src="menuItem.imageUrl" 
+        :alt="menuItem.name"
+        class="w-full h-full object-cover"
+        @error="handleImageError"
+      />
+      <div v-else class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+        <span class="text-gray-500 text-lg">IMAGE</span>
+      </div>
     </div>
 
     <!-- 메뉴 태그 -->
@@ -42,6 +51,16 @@ export default {
       type: Object,
       required: true,
     },
+  },
+  setup() {
+    const handleImageError = (event) => {
+      // 이미지 로드 실패 시 기본 이미지로 대체
+      event.target.style.display = 'none'
+    }
+
+    return {
+      handleImageError,
+    }
   },
 }
 </script>

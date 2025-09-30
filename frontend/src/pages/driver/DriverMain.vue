@@ -1,615 +1,198 @@
 <!-- src/pages/driver/DriverMain.vue -->
+<!-- 스크립트 영역 -->
 <script>
-import { apiFetch } from '@/libs/apiFetch';
+import api from '@/api/index.js'
+import DashBoard from "@/components/driver/tabs/DashBoard.vue";
+import History from "@/components/driver/tabs/History.vue"
+import CurrentDelivery from "@/components/driver/tabs/CurrentDelivery.vue";
 const API_BASE = import.meta.env.VITE_API_URL;
 const REJECT_KEY_PREFIX = 'rejectedOrders';
-
-export default {
-  data() {
-    return {
-      userName: '',
-      isOnline: false,
-      riderAddress: '위치 확인 중…',
-      riderId: null,
-      deliveries: [],
-      availableOrders: [],
-      currentOrder: null,
-      completedDeliveries: [],
-      poll: null,
-      rejectedOrders: [],
-      rejectKey: null,
-      todayEarnings: 0,
-      todayCount: 0,
-      isAccepting: false,
-      isPickedUp: false,
-      isBusy: false,
-      riderStatus: '',
-      // 추가
-      notFound: false,   // 404면 true
-      error: null,       // 기타 오류 메시지
+const TabStatus = Object.freeze(
+    {
+      CURRENT_DELIVERY: 'CURRENT_DELIVERY',
+      DASH_BOARD: 'DASHBOARD',
+      HISTORY: 'HISTORY',
     }
-  },
-  computed: {
-    isActiveStatus() {
-      return ['ACCEPTED','PICKED_UP']
-        .includes(String(this.riderStatus).trim().toUpperCase());
+)
+export default {
+  components: { DashBoard, History, CurrentDelivery},
+  data()
+  {
+    console.log('[DriverMain] data()')
+    return {
+      TabStatus,
+      riderInfo: { riderName: '', riderId: null},
+      activeTab: TabStatus.CURRENT_DELIVERY,
+      riderAddress: '위치 확인 중…',
+      today: {income:0,count:0,avg_time:0},
+      currentDelivery: null,
     }
   },
   mounted() {
-    const token = localStorage.getItem('jwt');
-    if (!token) { alert('로그인이 필요합니다.'); return; }
-    this.riderId = Number(localStorage.getItem('userId'));
+    const token = localStorage.getItem('jwt');  if (!token) { alert('로그인이 필요합니다.'); return; }
 
-    this.rejectKey = `${REJECT_KEY_PREFIX}:${this.riderId ?? 'unknown'}`;
-    const savedRejects = localStorage.getItem(this.rejectKey);
-    if (savedRejects) { try { this.rejectedOrders = JSON.parse(savedRejects); } catch {} }
-
-    const savedCurrent = localStorage.getItem('currentOrder');
-    if (savedCurrent) { try { this.currentOrder = JSON.parse(savedCurrent); } catch {} }
-
-    this.userName = localStorage.getItem('userName') || '게스트';
-    this.fetchCount();
-    this.fetchEarnings();
-    this.fetchAvg();
+    console.log(`[DriverMain] mounted() token=${token}`);
+    this.riderInfo = {
+      riderId: Number(localStorage.getItem("userId")),
+      riderName: localStorage.getItem("userName")
+    };
     this.refreshLocation();
-    this.getRiderStatus(); // 초기 상태 조회
-    this.getCurrentOrder();
-    this.$nextTick(() => window.lucide?.createIcons?.());
+    this.getAvg();  this.getEarnings(); this.getCount();
   },
-
-  beforeUnmount() {
-    if (this.poll) clearInterval(this.poll);
-  },
-
-  watch: {
-    currentOrder: {
-      deep: true,
-      handler(v) {
-        if (v) localStorage.setItem('currentOrder', JSON.stringify(v));
-        else localStorage.removeItem('currentOrder');
-      }
-    }
-  },
-
   methods: {
-    async getCurrentOrder() {
-      console.log("getCurrentOrder 실행 rider_id:"+this.riderId);
-      try {
-        const r = await apiFetch(`${API_BASE}/rider/deliveries/${this.riderId}/currentDelivery`, {
-          method: 'GET', headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` },
-        });
-        if (r?.status === 404) { this.currentOrder=null; this.riderStatus=''; this.isPickedUp=false; return; }
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-        const data = await r.json();
-        const s = String(data?.status || '').trim().toUpperCase();
-        this.riderStatus = s;
-
-        if (s === 'DELIVERED') { this.currentOrder = null; this.isPickedUp = false; return; }
-
-        this.currentOrder = data;           // ← 반드시 세팅
-        this.isPickedUp  = s === 'PICKED_UP';
-        this.notFound = false;
-        console.log("getCurrent성공");
-      } catch (e) {
-        console.error('getCurrentOrder error 에러 발생', e);
-        this.currentOrder = null;
-      }
-      console.log("getCurrentOrder 종료");
+    onAccepted(d){
+      this.currentDelivery = d;                      // 옵션: 상세에 전달할 데이터
+      this.activeTab = TabStatus.CURRENT_DELIVERY;   // 탭 전환
+      this.handleComplete();                         // 상단 카드 수치 갱신
+      // this.currentDeliveryKey++;                  // 필요 시 리마운트
     },
+    async handleComplete(){
+      await this.getAvg();
+      await this.getCount();
+      await this.getEarnings();
+    },
+    async getAvg(){
+       try{
+        const resp = await api.get(`/rider/${this.riderInfo.riderId}/today-avg`);
+        console.log("[DriverMain] getAvg:",resp.data);
+        this.today.avg_time = resp.data;
+      }catch(e){
+        console.log("[DriverMain] getAvg:error",e);
+      }
 
-    // 404면 notFound=true로 전환. 그 외 에러는 error에 저장.
-    async getRiderStatus() {
-      this.notFound = false; this.error = null;
-      const url = `${API_BASE}/rider/deliveries/${this.riderId}/status`;
-      try {
-        const r = await apiFetch(url, { method:'GET', headers:{ Authorization:`Bearer ${localStorage.getItem('jwt')}` } });
-        console.log('[status] url=', url, 'isResp=', !!r?.json, 'code=', r?.status);
-        if (r?.headers) console.log('[status] ct=', r.headers.get('content-type'));
+    },
+    async getEarnings(){
+       try{
+        const resp = await api.get(`/rider/${this.riderInfo.riderId}/today-income`);
 
-        let payload;
-        if (r?.json) {
-          if (r.status === 404) { this.notFound = true; this.riderStatus=''; return; }
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          const ct = r.headers.get('content-type') || '';
-          payload = ct.includes('application/json') ? await r.json() : await r.text();
-        } else {
-          payload = r; // apiFetch가 이미 파싱했을 때
-        }
-        const statusStr = (typeof payload === 'string' ? payload : payload?.status);
-        this.riderStatus = String(statusStr || '').trim().toUpperCase();
-
-        if (this.riderStatus === 'DELIVERED') {
-          this.currentOrder = null;
-          this.isPickedUp = false;
-        } else {
-          this.isPickedUp = this.riderStatus === 'PICKED_UP';
-        }
-        this.notFound = false; // 성공 시 가드 해제
-        console.log('[status] payload=', payload, 'bound=', this.riderStatus);
-      } catch (e) {
-        console.error('[status] error', e, e?.response?.status ?? e?.status);
-        if ((e?.response?.status ?? e?.status) === 404) { this.notFound = true; this.riderStatus=''; return; }
-        this.error = '요청 실패';
+        console.log("[DriverMain] getEarnings: ",resp.data);
+        this.today.income = resp.data;
+      }catch (e){
+        console.log("[DriverMain] getEarnings error: ",e);
       }
     },
+    async getCount() {
+       try{
+        const resp = await api.get(`/rider/${this.riderInfo.riderId}/today-count`);
 
-
-    async toggleOrderStatus() {
-      if (!this.currentOrder || this.isBusy) return;
-      this.isBusy = true;
-
-      try {
-        if (!this.isPickedUp) {
-          await this.pickupCurrentOrder();
-          this.isPickedUp = true;
-        } else {
-          await this.completeCurrentOrder();
-          this.isPickedUp = false;
-        }
-      } catch (e) {
-        console.error(e);
-        alert('처리 실패');
-      } finally {
-        this.isBusy = false;
+        console.log("[DriverMain] getCount: ",resp.data);
+        this.today.count = resp.data;
+      }catch (e){
+        console.log("[DriverMain] getCount error: ",e);
       }
     },
-
-    async pickupCurrentOrder() {
-      const id = this.currentOrder?.orderId;
-      console.log("pickupCurrentOrder: " + id);
-      if (!id) throw new Error('currentOrder.id 없음');
-
-      const token = localStorage.getItem('jwt');
-      const resp = await apiFetch(`${API_BASE}/rider/deliveries/${id}/pickup`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!resp.ok) throw new Error(`픽업 실패 ${resp.status}`);
-
-      await this.getCurrentOrder();
-    },
-
     async refreshLocation() {
+      console.log("[DriverMain] refreshLocation()");
       if (!navigator.geolocation) { this.riderAddress = '위치 지원 안됨'; return; }
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const { latitude, longitude } = pos.coords;
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ko`
-            );
-            const data = await res.json();
-            this.riderAddress = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-          } catch {
-            this.riderAddress = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-          }
-        },
-        () => { this.riderAddress = '위치 접근 거부됨' },
-        { enableHighAccuracy: true, timeout: 10000 }
+          async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            try {
+              const res = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ko`
+              );
+              const data = await res.json();
+              this.riderAddress = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+            } catch {
+              this.riderAddress = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+            }
+          },
+          () => { this.riderAddress = '위치 접근 거부됨' },
+          { enableHighAccuracy: true, timeout: 10000 }
       );
-    },
-
-    toggleOnlineStatus(next) {
-      this.isOnline = typeof next === 'boolean' ? next : !!this.isOnline;
-      if (this.isOnline) {
-        this.fetchDeliveries();
-        this.startPolling();
-      } else {
-        this.availableOrders = [];
-        if (this.poll) clearInterval(this.poll);
-      }
-    },
-
-    async fetchAvg() {
-      console.log("fetchAvg start: riderid = " + this.riderId);
-      try {
-        const token = localStorage.getItem('jwt');
-        const res = await apiFetch(
-          `${API_BASE}/rider/deliveries/${this.riderId}/avg`,
-          {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (!res.ok) {
-          console.error("fetchEarnings failed with status", res.status);
-          return;
-        }
-        const avg = await res.json();
-        const el = document.getElementById("today-avg");
-        if (el) el.textContent = `${avg.toLocaleString()}분`;
-      } catch (e) {
-        console.error("fetchAvg error", e);
-      } finally {
-        console.log("fetchAvg: rider_id=" + this.riderId);
-      }
-    },
-
-    async fetchEarnings() {
-      console.log("fetchEarnings start: riderid = " + this.riderId);
-      try {
-        const token = localStorage.getItem('jwt');
-        const res = await apiFetch(
-          `${API_BASE}/rider/deliveries/${this.riderId}/today-earnings`,
-          {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (!res.ok) {
-          console.error("fetchEarnings failed with status", res.status);
-          return;
-        }
-        const earnings = await res.json();
-        const el = document.getElementById("today-earnings");
-        if (el) el.textContent = `${earnings.toLocaleString()}원`;
-      } catch (e) {
-        console.error("fetchEarnings error", e);
-      } finally {
-        console.log("fetchEarnings: rider_id=" + this.riderId);
-      }
-    },
-
-    async fetchCount() {
-      console.log("fetch_count: " + this.riderId);
-      try {
-        const token = localStorage.getItem('jwt');
-        const res = await apiFetch(
-          `${API_BASE}/rider/deliveries/${this.riderId}/count`,
-          {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (!res.ok) {
-          console.error("fetchCount failed with status", res.status);
-          return;
-        }
-        const count = await res.json();
-        const el = document.getElementById("today-count");
-        if (el) el.textContent = `${count.toLocaleString()}건`;
-      } catch (e) {
-        console.error("fetchCount error", e);
-      } finally {
-        console.log("fetchCount: rider_id=" + this.riderId);
-      }
-    },
-
-    async acceptOrder(orderId) {
-      if (this.currentOrder || this.isAccepting) return;
-      this.isAccepting = true;
-      try {
-        const token = localStorage.getItem('jwt');
-        const riderId = localStorage.getItem('userId');
-
-        const resp = await apiFetch(`${API_BASE}/rider/deliveries/${orderId}/accept`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ riderId }),
-        });
-        if (!resp.ok) {
-          alert(resp.status === 409 ? '동시에 여러 건 수락 불가' : `수락 실패: ${resp.status}`);
-          return;
-        }
-
-        // 성공 후
-        await this.getCurrentOrder();           // ← picked 쓰지 말 것
-        this.isPickedUp = false;
-        this.availableOrders = this.availableOrders.filter(o => String(o.id) !== String(orderId));
-        localStorage.removeItem('currentOrder');
-
-      } catch (e) {
-        console.error('수락 실패:', e);
-        alert('수락 실패');
-      } finally {
-        this.isAccepting = false;
-      }
-    },
-
-    rejectOrder(deliveryId) {
-      const id = String(deliveryId);
-      if (!this.rejectedOrders.includes(id)) {
-        this.rejectedOrders.push(id);
-        if (this.rejectKey) {
-          localStorage.setItem(this.rejectKey, JSON.stringify(this.rejectedOrders));
-        }
-      }
-      this.availableOrders = this.availableOrders.filter(o => String(o.id) !== id);
-    },
-
-    startPolling() {
-      if (this.poll) clearInterval(this.poll);
-      this.poll = setInterval(() => {
-        if (this.isOnline) {
-          this.fetchDeliveries();
-          this.getRiderStatus(); // 주기적으로 상태 갱신
-          this.getCurrentOrder();
-        }
-      }, 3000);
-    },
-
-    async fetchDeliveries() {
-      try {
-        const token = localStorage.getItem('jwt');
-        const res = await apiFetch(`${API_BASE}/orders/delivery/available`, {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        const items = Array.isArray(json) ? json : (json?.data ?? []);
-        const mapped = items.map((o, idx) => ({
-          _key: `ord:${o.id}|${o.orderNumber}|${idx}`,
-          id: o.id,
-          status: o.status,
-          restaurantName: o.storeName,
-          customerAddress: [o.deliveryAddress, o.deliveryDetailAddress].filter(Boolean).join(' '),
-          orderTime: o.orderedAt ?? o.cookingCompletedAt ?? '-',
-          deliveryFee: o.deliveryFee ?? 0,
-          items: (o.orderItems ?? []).map(i => ({
-            name: i.menuName, quantity: i.quantity, price: i.totalPrice,
-          })),
-          restaurantAddress: o.storeAddress,
-          restaurantDetailAddress: o.storeDetailAddress,
-          total: o.totalAmount ?? 0,
-        }));
-        this.availableOrders = mapped;
-      } catch (e) {
-        console.error('배달 목록 오류:', e);
-        alert('배달 목록을 불러오지 못했습니다.');
-      }
-    },
-
-    async completeCurrentOrder() {
-      const co = this.currentOrder;
-      if (!co?.orderId) throw new Error('currentOrder.id 없음(배달완료)');
-
-      const now = new Date();
-      const optimistic = {
-        ...co,
-        completedTime: now.toISOString(),
-        completedTimeText: now.toLocaleString(),
-        earnings: co.deliveryFee ?? 0,
-      };
-
-      this.completedDeliveries.unshift(optimistic);
-
-      const token = localStorage.getItem('jwt');
-      const riderId = this.riderId || JSON.parse(localStorage.getItem('rider') || '{}').riderId;
-
-      const resp = await apiFetch(`${API_BASE}/rider/deliveries/${co.orderId}/complete`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ riderId }),
-      });
-
-      if (!resp.ok) {
-        this.completedDeliveries.shift();
-        throw new Error(`완료 실패 ${resp.status}`);
-      }
-
-      this.currentOrder = null;
-      localStorage.removeItem('currentOrder');
-      await this.fetchCount();
-      await this.fetchEarnings();
-      await this.fetchAvg();
-      await this.getCurrentOrder();
     },
   },
 }
 </script>
-
-
-
-
-
+<!-- 렌더링 영역-->
 <template>
-  <header class="bg-white border-b-2 border-gray-400 p-4">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <!-- 왼쪽: 제목 + 주소 -->
-      <div class="flex items-center gap-2">
-        <i data-lucide="truck" class="w-6 h-6 text-gray-600"></i>
-        <h1 class="text-xl text-gray-800">
-          {{ userName }} 라이더
-          <span class="ml-2 text-sm text-gray-500">({{ riderAddress }})</span>
-        </h1>
-      </div>
-
-      <!-- 오른쪽: 근무 상태 -->
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2">
-          <label class="text-gray-700 text-sm">근무 상태</label>
-          <label class="switch">
-            <input
-              id="online-switch"
-              type="checkbox"
-              v-model="isOnline"
-              @change="toggleOnlineStatus(isOnline)"
-            />
-            <span class="slider"></span>
-          </label>
-          <span
-            id="status-badge"
-            class="inline-flex px-2 py-1 text-xs rounded border"
-            :class="
-                isOnline
-                  ? 'border-gray-400 bg-gray-200 text-gray-800'
-                  : 'border-gray-400 bg-gray-400 text-gray-600'
-              "
-          >
-              {{ isOnline ? '온라인' : '오프라인' }}
-            </span>
-        </div>
-      </div>
+  <div class = "flex items-center justify-between">
+    <!-- 왼쪽: 제목 + 주소 -->
+    <div class="flex items-center gap-2">
+      <i data-lucide="truck" class="w-6 h-6 text-gray-600"></i>
+      <h1 class="text-2xl font-bold text-gray-800">
+        {{ riderInfo.riderName }} 라이더
+        <span class="ml-2 text-sm text-gray-500">({{ riderAddress }})</span>
+      </h1>
     </div>
-  </header>
-
-  <div>  <!-- history tab-->
-
   </div>
 
-  <div><!-- delivery tab -->
-    <div><!-- Stats -->
-      <div class="max-w-6xl mx-auto p-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="border-2 border-gray-400 bg-white rounded-lg p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-600">오늘 수익</p>
-                <p id="today-earnings" class="text-2xl text-gray-800">0원</p>
-              </div>
-              <i data-lucide="dollar-sign" class="w-8 h-8 text-gray-600"></i>
-            </div>
+  <div class=""><!-- delivery tab -->
+    <div class="max-w-auto mx-auto p-2">
+      <div class="grid grid-cols-3 gap-4">
+        <div class="border-2 border-b-gray-400 bg-white rounded-lg p-4">
+          <div class="flex items-center justify-start">
+            <p class="text-m text-grey-300 font-bold">오늘 수익</p>
+            <p class="text-m text-grey-300 px-4">{{this.today.income}}원</p>
           </div>
-          <div class="border-2 border-gray-400 bg-white rounded-lg p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-600">오늘 배달</p>
-                <p id="today-count" class="text-2xl text-gray-800">0건</p>
-              </div>
-              <i data-lucide="package" class="w-8 h-8 text-gray-600"></i>
-            </div>
+        </div>
+
+        <div class="border-2 border-b-gray-400 bg-white rounded-lg p-4">
+          <div class="flex items-center justify-start">
+            <p class="text-m text-grey-300 font-bold">오늘 배달 횟수</p>
+            <p class="text-m text-grey-300 px-4">{{this.today.count}}번</p>
           </div>
-          <div class="border-2 border-gray-400 bg-white rounded-lg p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-600">평균 배달 시간</p>
-                <p id="today-avg" class="text-2xl text-gray-800">0분</p>
-              </div>
-              <i data-lucide="timer" class="w-8 h-8 text-gray-600"></i>
-            </div>
+        </div>
+
+        <div class="border-2 border-b-gray-400 bg-white rounded-lg p-4">
+          <div class="flex items-center justify-start">
+            <p class="text-m text-grey-300 font-bold">오늘 평균 배달 시간</p>
+            <p class="text-m text-grey-300 px-4">{{this.today.avg_time}}분</p>
           </div>
         </div>
       </div>
     </div>
-    <!-- Available Orders -->
-    <div id="available-content" class="tab-content">
-      <!-- 오프라인 -->
-      <div v-if="!isOnline"
-           class="border-2 border-gray-400 bg-white rounded-lg p-8 text-center">
-        <i data-lucide="truck" class="w-12 h-12 mx-auto text-gray-500 mb-4"></i>
-        <h3 class="mb-2 text-gray-800">오프라인 상태</h3>
-        <p class="text-gray-600 mb-4">근무 상태를 온라인으로 변경하면 새로운 주문을 받을 수 있습니다.</p>
-        <button
-          @click="toggleOnlineStatus(true)"
-          class="border-2 border-gray-400 bg-gray-200 text-gray-800 hover:bg-gray-300 px-4 py-2 rounded">
-          온라인으로 변경
-        </button>
-      </div>
+  </div>
 
-      <!-- 온라인 + 대기중 -->
-      <div v-else-if="availableOrders.length === 0"
-           class="border-2 border-gray-400 bg-white rounded-lg p-8 text-center">
-        <i data-lucide="bell" class="w-12 h-12 mx-auto text-gray-500 mb-4"></i>
-        <h3 class="mb-2 text-gray-800">새로운 주문 대기 중</h3>
-        <p class="text-gray-600">새로운 배달 주문이 들어오면 알림을 보내드립니다.</p>
-      </div>
-      <!-- 온라인 + 주문 리스트 -->
-      <div v-else class="space-y-4">
-        <div v-for="order in availableOrders" :key="order._key"
-             class="border-2 border-gray-400 hover:bg-gray-200 transition-colors bg-white rounded-lg p-6">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <h3 class="mb-1 text-gray-800">{{ order.restaurantName }}</h3>
-              <p class="text-sm text-gray-600">주문 시간: {{ order.orderTime }}</p>
-            </div>
-            <span class="bg-gray-200 text-gray-800 border border-gray-400 px-2 py-1 rounded text-sm">배달 가능</span>
-          </div>
+  <div class = "w-full">
+    <!-- 탭 버튼 영역 -->
+    <div class="flex border-b border-gray-300">
+      <button
+          @click="activeTab = TabStatus.CURRENT_DELIVERY"
+          :class="activeTab === TabStatus.CURRENT_DELIVERY
+      ? 'border-b-2 border-blue-500 text-blue-600 font-bold'
+      : 'text-gray-600'"
+          class="px-4 py-2"
+      >
+        현재 배달
+      </button>
+      <button
+          @click="activeTab = TabStatus.DASH_BOARD"
+          :class="activeTab === TabStatus.DASH_BOARD
+        ? 'border-b-2 border-blue-500 text-blue-600 font-bold'
+      : 'text-gray-600'"
+          class="px-4 py-2"
+      >
+        배달 요청
+      </button>
+      <button
+          @click="activeTab = TabStatus.HISTORY"
+          :class="activeTab === TabStatus.HISTORY
+        ? 'border-b-2 border-blue-500 text-blue-600 font-bold'
+      : 'text-gray-600'"
+          class="px-4 py-2"
+      >
+        배달 기록
+      </button>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <i data-lucide="map-pin" class="w-4 h-4 text-gray-600"></i>
-                <span class="text-sm text-gray-700">픽업 주소</span>
-              </div>
-              <p class="text-sm pl-6 text-gray-600">{{ order.restaurantAddress + "\t" + order.restaurantDetailAddress }}</p>
-            </div>
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <i data-lucide="map-pin" class="w-4 h-4 text-gray-600"></i>
-                <span class="text-sm text-gray-700">배달 주소</span>
-              </div>
-              <p class="text-sm pl-6 text-gray-600">{{ order.customerAddress }}</p>
-            </div>
-          </div>
+    </div>
 
-          <div class="flex items-center gap-4 mb-4 text-sm">
-            <div class="flex items-center gap-1">
-              <i data-lucide="clock" class="w-4 h-4 text-gray-600"></i>
-              <span class="text-gray-700">예상 배달: {{ order.estimatedDeliveryTime }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <i data-lucide="navigation" class="w-4 h-4 text-gray-600"></i>
-              <span class="text-gray-700">거리: {{ order.distance }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <i data-lucide="dollar-sign" class="w-4 h-4 text-gray-600"></i>
-              <span class="text-gray-700">배달비: {{ order.deliveryFee.toLocaleString() }}원</span>
-            </div>
-          </div>
 
-          <div class="mb-4">
-            <h4 class="text-sm mb-2 text-gray-700">주문 내역</h4>
-            <div class="text-sm text-gray-600">
-              {{ order.items.map(i => `${i.name} x${i.quantity}`).join(', ') }}
-            </div>
-            <p class="text-sm mt-1 text-gray-700">총 주문금액: {{ order.total.toLocaleString() }}원</p>
-          </div>
-
-          <div class="flex gap-2">
-            <button
-              @click="acceptOrder(order.id)"
-              :disabled="!!currentOrder || isAccepting"
-              class="flex-1 bg-gray-600 text-white border-2 border-gray-800 hover:bg-gray-700 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              주문 수락
-            </button>
-            <button
-              @click="rejectOrder(order.id)"
-              class="flex-1 bg-white text-gray-800 border-2 border-gray-400 hover:bg-gray-100 py-2 rounded transition-colors">
-              거절
-            </button>
-          </div>
-        </div>
-      </div>
-      <!-- ✅ Current Order (같은 루트 내부) -->
-      <div id="current-content" class="tab-content mt-6">
-        <div v-if="isActiveStatus" class="border-2 border-gray-400 bg-white rounded-lg p-6">
-          <h3 class="text-lg text-gray-800 mb-2">현재 배달</h3>
-          <p class="text-sm text-gray-600">상태: {{ riderStatus }}</p>
-          <p class="text-sm text-gray-600">출발지: {{ currentOrder?.pickupAddress || '-' }}</p>
-          <p class="text-sm text-gray-600">배달 주소: {{ currentOrder?.deliveryAddress || '-' }}</p>
-          <p class="text-sm text-gray-600">
-            예상 배달 시간: {{ currentOrder?.estimatedTime != null ? currentOrder.estimatedTime + '분' : '-' }}
-          </p>
-
-          <button
-            @click="toggleOrderStatus()"
-            :disabled="!isActiveStatus || !currentOrder?.orderId || isBusy"
-            class="mt-4 bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 disabled:opacity-50">
-            {{ riderStatus === 'PICKED_UP' ? '배달 완료' : '픽업 완료' }}
-          </button>
-        </div>
-
-        <div v-else class="border-2 border-gray-400 bg-white rounded-lg p-8 text-center">
-          <i data-lucide="package" class="w-12 h-12 mx-auto text-gray-500 mb-4"></i>
-          <h3 class="mb-2 text-gray-800">진행 중인 배달이 없습니다</h3>
-        </div>
-      </div>
-
+    <div class="p-4">
+      <DashBoard v-if="activeTab === TabStatus.DASH_BOARD && riderInfo.riderId !==null"
+                 :active-tab="activeTab"
+                 :rider-info="riderInfo"
+                 @accepted="onAccepted"
+      />
+      <History v-if="activeTab === TabStatus.HISTORY && riderInfo.riderId !==null"
+               :active-tab="activeTab"
+               :rider-info="riderInfo" />
+      <CurrentDelivery v-if="activeTab === TabStatus.CURRENT_DELIVERY && riderInfo.riderId !==null"
+                       :active-tab="activeTab"
+                       :rider-info="riderInfo"
+                       @refresh-parent="handleComplete"
+      />
     </div>
   </div>
 </template>
 
-
-
-<style>
-/* 토글 스위치 스타일 */
-.switch { position: relative; display: inline-block; width: 46px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #ccc; transition: 0.4s; border-radius: 24px; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
-  background-color: white; transition: 0.4s; border-radius: 50%; }
-input:checked + .slider { background-color: #4caf50; }
-input:checked + .slider:before { transform: translateX(22px); }
-</style>

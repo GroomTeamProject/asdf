@@ -1,3 +1,4 @@
+// domain/OrderItemOption.java
 package io.goorm.team02.core.orders.domain;
 
 import io.goorm.team02.core.orders.controller.dto.OrderRequest;

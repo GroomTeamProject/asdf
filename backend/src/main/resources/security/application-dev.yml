@@ -27,3 +27,4 @@ cloud:
 
 jwt:
   secret: ${JWT_SECRET_DEV}
+  expiration: 3600000

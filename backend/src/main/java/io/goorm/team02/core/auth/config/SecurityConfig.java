@@ -14,15 +14,19 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import io.goorm.team02.core.auth.security.RateLimitFilter;
 
 @EnableWebSecurity
 @Configuration
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          RateLimitFilter rateLimitFilter /*...*/) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -31,7 +35,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
@@ -44,8 +49,7 @@ public class SecurityConfig {
                         "/v3/api-docs/**",
                         "/v2/api-docs/**",
                         "/swagger-resources/**",
-                        "/webjars/**"
-                );
+                        "/webjars/**");
     }
 
     @Bean
@@ -65,18 +69,22 @@ public class SecurityConfig {
                         // OPTIONS 요청 허용 추가
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        //공통접근
+                        // 공통접근
                         .requestMatchers("/api/auth/**", "/error").permitAll() // 로그인/회원가입 허용
 
                         // 마이페이지 접근 허용
                         .requestMatchers("/api/users/me/password",
-                                                       "api/users/me/deactivate").authenticated()
+                                "api/users/me/deactivate")
+                        .authenticated()
 
                         // 역할별 접근(임시, api맞춰야함)
+                        /*
                         .requestMatchers("/api/stores/**").hasRole("CUSTOMER") // 이용자 전용
+                        .requestMatchers("/api/orders/**").hasRole("CUSTOMER") // 결제하기 버튼
+                        .requestMatchers("/api/payments/**").hasRole("CUSTOMER")  // 결제창
                         .requestMatchers("/api/owner/**").hasRole("OWNER")
                         .requestMatchers("/api/rider/**").hasRole("RIDER")
-
+                        */
                         .anyRequest().authenticated() // 나머지 요청 인증 필요
                 )
 
@@ -84,6 +92,8 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
 
+        // Rate limit filter를 먼저 거친 뒤 JWT 인증 필터
+        http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
         // JWT 필터를 UsernamePasswordAuthenticationFilter 앞에 추가
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

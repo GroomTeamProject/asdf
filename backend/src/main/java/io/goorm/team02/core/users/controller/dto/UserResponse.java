@@ -33,6 +33,7 @@ public class UserResponse {
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                //.phone(formatPhone(user.getPhone())) 
                 .phone(user.getPhone())
                 .name(user.getName())
                 .birthDate(user.getBirthDate())
@@ -43,5 +44,28 @@ public class UserResponse {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+    }
+
+
+    // 전화번호 포맷팅 메서드
+    private static String formatPhone(String phone) {
+        if (phone == null) return null;
+
+        // 11자리일 때만 010-xxxx-xxxx 형식
+        if (phone.length() == 11) {
+            return phone.substring(0, 3) + "-" 
+                + phone.substring(3, 7) + "-" 
+                + phone.substring(7);
+        }
+
+        // 10자리일 때 02-xxxx-xxxx 등 처리
+        if (phone.length() == 10) {
+            return phone.substring(0, 3) + "-" 
+                + phone.substring(3, 6) + "-" 
+                + phone.substring(6);
+        }
+
+        // 길이가 맞지 않으면 그대로 반환
+        return phone;
     }
 }

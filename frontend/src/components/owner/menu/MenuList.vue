@@ -174,13 +174,14 @@
 
     <!-- 모달들 -->
     <MenuModal
-      v-if="showAddMenuModal || showEditMenuModal"
-      :menu="editingMenu"
-      :categories="categories"
-      :is-edit="showEditMenuModal"
-      @close="closeMenuModal"
-      @save="saveMenu"
-    />
+  v-if="showAddMenuModal || showEditMenuModal"
+  :menu="editingMenu"
+  :categories="categories"
+  :is-edit="showEditMenuModal"
+  @close="closeMenuModal"
+  @save="saveMenu"
+  @categoryAdded="handleCategoryAdded"
+/>
 
     <MenuOptionsModal
       v-if="showOptionsModal"
@@ -320,6 +321,19 @@ const swapMenuOrder = async (menu1, menu2) => {
 
 // 순서 정규화 (개발자용 유틸리티)
 
+const handleCategoryAdded = (newCategory) => {
+  // 카테고리 목록에 새 카테고리 추가
+  categories.value.push(newCategory)
+  
+  // 카테고리 목록 재정렬
+  categories.value.sort((a, b) => {
+    if (a.isActive && !b.isActive) return -1
+    if (!a.isActive && b.isActive) return 1
+    return a.displayOrder - b.displayOrder
+  })
+  
+  console.log('새 카테고리 추가됨:', newCategory)
+}
 
 // 데이터 로딩
 const loadData = async () => {

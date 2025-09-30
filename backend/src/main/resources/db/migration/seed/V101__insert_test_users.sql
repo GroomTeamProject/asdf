@@ -1,10 +1,12 @@
 -- V11__insert_test_users.sql
 -- 테스트용 사용자 데이터
 INSERT INTO `users` (`id`, `email`, `password`, `phone`, `name`, `birth_date`, `user_type`, `is_active`, `email_verified`, `phone_verified`) VALUES
-(1, 'customer1@test.com', 'password123', '010-1234-5678', '김고객', '1990-01-01', 'CUSTOMER', TRUE, TRUE, TRUE),
-(2, 'customer2@test.com', 'password123', '010-2345-6789', '이고객', '1992-05-15', 'CUSTOMER', TRUE, TRUE, TRUE),
-(3, 'owner1@test.com', 'password123', '010-3456-7890', '박사장', '1985-03-20', 'OWNER', TRUE, TRUE, TRUE),
-(4, 'owner2@test.com', 'password123', '010-4567-8901', '최사장', '1988-07-10', 'OWNER', TRUE, TRUE, TRUE);
+(1, 'customer1@test.com', 'password123', '01012345678', '김고객', '1990-01-01', 'CUSTOMER', TRUE, TRUE, TRUE),
+(2, 'customer2@test.com', 'password123', '01023456789', '이고객', '1992-05-15', 'CUSTOMER', TRUE, TRUE, TRUE),
+(3, 'owner1@test.com', 'password123', '01034567890', '박사장', '1985-03-20', 'OWNER', TRUE, TRUE, TRUE),
+(4, 'owner2@test.com', 'password123', '01045678901', '최사장', '1988-07-10', 'OWNER', TRUE, TRUE, TRUE),
+(5,'rider1@test.com','password123','01044444444','김라이더','1998-06-24','RIDER',TRUE,TRUE,TRUE),
+(6,'rider2@test.com','password123','01055555555','박라이더','1922-02-02','RIDER',TRUE,TRUE,TRUE);
 
 -- 테스트용 사용자 주소 데이터
 INSERT INTO `user_addresses` (`user_id`, `address_name`, `address`, `detail_address`, `zipcode`, `latitude`, `longitude`, `is_default`) VALUES

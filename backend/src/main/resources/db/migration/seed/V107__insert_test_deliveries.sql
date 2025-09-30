@@ -1,6 +1,6 @@
 -- V107__insert_test_deliveries.sql
 -- 테스트용 배달 데이터 (완성된 배달 프로세스)
-
+/*
 -- 배달 데이터
 INSERT INTO `deliveries` (`id`, `order_id`, `rider_id`, `pickup_address`, `delivery_address`, `distance_km`, `estimated_time`, `status`, `requested_at`, `accepted_at`, `picked_up_at`, `delivered_at`) VALUES
 -- 완료된 배달 1: 김고객의 치킨 주문
@@ -32,3 +32,4 @@ INSERT INTO `delivery_locations` (`id`, `delivery_id`, `latitude`, `longitude`, 
 (10, 2, 37.4960, 127.0290, '2025-01-08 19:56:00'), -- 이동 중 3
 (11, 2, 37.4965, 127.0295, '2025-01-08 19:58:00'), -- 이동 중 4
 (12, 2, 37.5563, 126.9226, '2025-01-08 20:00:00'); -- 배달 완료
+*/

@@ -1,56 +1,63 @@
 package io.goorm.team02.core.payments.domain;
 
-import io.goorm.team02.core.common.domain.BaseEntity;
 import io.goorm.team02.core.orders.domain.Order;
-import io.goorm.team02.core.payments.domain.enums.PaymentMethod;
 import io.goorm.team02.core.payments.domain.enums.PaymentStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 @Entity
 @Table(name = "payments")
-public class Payment extends BaseEntity {
+@Getter
+@Setter
+@NoArgsConstructor
+
+public class Payment {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@OneToOne
-	@JoinColumn(name = "order_id", nullable = false)
-	private Order order;
-
-	@Column(name = "payment_key", unique = true, length = 200)
-	private String paymentKey;
-
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private PaymentMethod paymentMethod;
-
-	@Column(nullable = false, precision = 10, scale = 2)
 	private BigDecimal amount;
 
-	@Enumerated(EnumType.STRING)
-	private PaymentStatus status = PaymentStatus.PENDING;
+	private String paymentMethod;
 
-	@Column(name = "pg_provider", length = 50)
+	@Enumerated(EnumType.STRING)
+	private PaymentStatus status;
+
+	private String paymentKey;
+
 	private String pgProvider;
 
-	@Column(name = "pg_tid", length = 100)
 	private String pgTid;
 
-	private LocalDateTime approvedAt;
+	private LocalDateTime createdAt = LocalDateTime.now();
 
-	@Column(columnDefinition = "TEXT")
-	private String failedReason;
+	private LocalDateTime updatedAt = LocalDateTime.now();
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "order_id")
+	@JsonBackReference
+	private Order order;
+
+	public Payment(BigDecimal amount, String paymentMethod, PaymentStatus status, String paymentKey,
+			String pgProvider, String pgTid, Order order) {
+		this.amount = amount;
+		this.paymentMethod = paymentMethod;
+		this.status = status;
+		this.paymentKey = paymentKey;
+		this.pgProvider = pgProvider;
+		this.pgTid = pgTid;
+		this.order = order;
+	}
+
+	public void setStatus(PaymentStatus status) {
+		this.status = status;
+	}
 }

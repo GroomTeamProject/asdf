@@ -47,20 +47,30 @@ public class UserService {
     @Transactional
     public User updateUser(Long userId, UserUpdateRequest request) {
         User user = getUserById(userId);
+
+        // 전화번호 전처리 (-, 공백 등 제거 후 숫자만 남김)
+        String cleanedPhone = null;
+        if (request.getPhone() != null) {
+            cleanedPhone = request.getPhone().replaceAll("[^0-9]", "");
+            // 전화번호 중복 체크 (전처리된 값 기준)
+            if (userRepository.findByPhone(cleanedPhone).isPresent()) {
+                throw new RuntimeException("Phone number already exists");
+            }
+        }
         
-        // 전화번호 중복 체크 (다른 사용자가 사용 중인지 확인)
+        /*/ 전화번호 중복 체크 (다른 사용자가 사용 중인지 확인)
         if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
             if (userRepository.findByPhone(request.getPhone()).isPresent()) {
                 throw new RuntimeException("이미 사용 중인 전화번호입니다.");
             }
-        }
+        }*/
         
         // 업데이트할 필드만 변경
         if (request.getName() != null) {
             user.setName(request.getName());
         }
-        if (request.getPhone() != null) {
-            user.setPhone(request.getPhone());
+        if (cleanedPhone!= null) {
+            user.setPhone(cleanedPhone);
         }
         if (request.getBirthDate() != null) {
             user.setBirthDate(request.getBirthDate());
@@ -255,10 +265,20 @@ public class UserService {
             throw new RuntimeException("Email already exists");
         }
 
-        // 전화번호 중복 체크
+        // 전화번호 전처리 (-, 공백 등 제거 후 숫자만 남김)
+        String cleanedPhone = null;
+        if (request.getPhone() != null) {
+            cleanedPhone = request.getPhone().replaceAll("[^0-9]", "");
+            // 전화번호 중복 체크 (전처리된 값 기준)
+            if (userRepository.findByPhone(cleanedPhone).isPresent()) {
+                throw new RuntimeException("Phone number already exists");
+            }
+        }
+
+        /*// 전화번호 중복 체크
         if (request.getPhone() != null && userRepository.findByPhone(request.getPhone()).isPresent()) {
             throw new RuntimeException("Phone number already exists");
-        }
+        }*/
 
         // 비밀번호 일치 확인
         if (!request.getPassword().equals(request.getPasswordCheck())) {
@@ -270,7 +290,8 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName());
-        user.setPhone(request.getPhone());
+        //user.setPhone(request.getPhone());
+        user.setPhone(cleanedPhone);
         user.setUserType(request.getUserType());
         user.setIsActive(true);
         user.setEmailVerified(false);

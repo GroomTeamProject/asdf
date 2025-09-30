@@ -22,6 +22,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -193,17 +194,16 @@ public class Order extends BaseEntity {
 		changeStatus(OrderStatus.READY);
 	}
 
+	/**
+	 * 배달 시작
+	 */
+	public void startDelivery() {
+		if (this.status != OrderStatus.READY) {
+			throw new IllegalStateException("배달을 시작할 수 없는 주문 상태입니다. 현재 상태: " + this.status);
+		}
 
-    /**
-     * 배달 시작
-     */
-    public void startDelivery() {
-        if (this.status != OrderStatus.READY) {
-            throw new IllegalStateException("배달을 시작할 수 없는 주문 상태입니다. 현재 상태: " + this.status);
-        }
-
-        changeStatus(OrderStatus.PICKED_UP);
-    }
+		changeStatus(OrderStatus.PICKED_UP);
+	}
 
 	/**
 	 * 배달 완료
@@ -309,8 +309,8 @@ public class Order extends BaseEntity {
 		order.setStore(store);
 		order.setDeliveryAddress(orderRequest.deliveryAddress());
 		order.setDeliveryDetailAddress(orderRequest.deliveryDetailAddress());
-        order.setStoreAddress(store.getAddress());
-        order.setStoreDetailAddress(store.getDetailAddress());
+		order.setStoreAddress(store.getAddress());
+		order.setStoreDetailAddress(store.getDetailAddress());
 		order.setPhone(orderRequest.phone());
 		order.setOrderMemo(orderRequest.orderMemo());
 		order.setDeliveryFee(store.getDeliveryFee());

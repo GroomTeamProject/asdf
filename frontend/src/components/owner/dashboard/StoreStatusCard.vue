@@ -11,7 +11,7 @@
                'border-green-400 bg-green-50': getCurrentOperatingStatus().status === 'open',
                'border-red-400 bg-red-50': getCurrentOperatingStatus().status === 'closed',
                'border-gray-400 bg-gray-50': getCurrentOperatingStatus().status === 'unknown'
-             }">
+             }"ls>
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium"

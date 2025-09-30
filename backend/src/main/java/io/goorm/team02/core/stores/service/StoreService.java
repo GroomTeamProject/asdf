@@ -26,6 +26,7 @@ import io.goorm.team02.core.stores.controller.dto.storemanagement.StoreUpdateReq
 import io.goorm.team02.core.stores.domain.Store;
 import io.goorm.team02.core.stores.domain.StoreHoliday;
 import io.goorm.team02.core.stores.domain.StoreHour;
+import io.goorm.team02.core.stores.events.ImageCleanupEvent;
 import io.goorm.team02.core.stores.repository.StoreHolidayRepository;
 import io.goorm.team02.core.stores.repository.StoreHourRepository;
 import io.goorm.team02.core.stores.domain.TempUser;
@@ -44,6 +45,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,8 +53,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-
-import static io.goorm.team02.core.auth.security.SecurityUtils.getCurrentUserId;
 
 @Service
 @RequiredArgsConstructor
@@ -67,74 +67,27 @@ public class StoreService {
     private final OrderService orderService;
     private final ReviewRepository reviewRepository;
     private final S3Service s3Service;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 가게 등록 (최초 1회)
      */
     @Transactional
-    public Store createStore(StoreCreateRequest request) {
-        log.info("=== 가게 등록 시작 ===");
-
-        // JWT 토큰에서 현재 로그인한 사용자 ID 가져오기
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
-
-        // 입력받은 값들 로그 출력
-        log.info("입력받은 가게 정보:");
-        log.info("  - 사업자등록번호: {}", request.getBusinessNumber());
-        log.info("  - 가게명: {}", request.getName());
-        log.info("  - 설명: {}", request.getDescription());
-        log.info("  - 전화번호: {}", request.getPhone());
-        log.info("  - 주소: {}", request.getAddress());
-        log.info("  - 상세주소: {}", request.getDetailAddress());
-        log.info("  - 위도: {}", request.getLatitude());
-        log.info("  - 경도: {}", request.getLongitude());
-        log.info("  - 카테고리: {}", request.getCategory());
-        log.info("  - 최소주문금액: {}", request.getMinOrderAmount());
-        log.info("  - 배달료: {}", request.getDeliveryFee());
-        log.info("  - 최소배달시간: {}분", request.getDeliveryTimeMin());
-        log.info("  - 최대배달시간: {}분", request.getDeliveryTimeMax());
-        log.info("  - 이미지URL: {}", request.getImageUrl());
-
-        // 사용자 조회 및 검증
-        log.info("사용자 조회 중...");
-        TempUser owner = userRepository.findById(currentUserId)
-                .orElseThrow(() -> {
-                    log.error("JWT 토큰의 사용자 ID로 사용자를 찾을 수 없습니다. ID: {}", currentUserId);
-                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 실패");  // 👈 변경
-                });
+    public Store createStore(TempUser currentUser, StoreCreateRequest request) {
+        log.info("=== 가게 등록 시작 - 사용자 ID: {} ===", currentUser.getId());
 
         // 사용자가 이미 가게를 가지고 있는지 확인
-        log.info("기존 가게 존재 여부 확인 중...");
-        if (storeRepository.existsByOwnerIdAndIsActiveTrue(currentUserId)) {
-            log.warn("이미 등록된 가게가 있습니다. 사용자 ID: {}", currentUserId);
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 가게가 있음");  // 👈 변경
-        }
-        log.info("기존 가게 없음 - 새 가게 등록 진행");
-
-        // 입력값 유효성 검증 추가
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 요청");  // 👈 추가
+        if (storeRepository.existsByOwnerIdAndIsActiveTrue(currentUser.getId())) {
+            log.warn("이미 등록된 가게가 있습니다. 사용자 ID: {}", currentUser.getId());
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 가게가 있습니다");
         }
 
-        if (request.getBusinessNumber() == null || request.getBusinessNumber().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 요청");  // 👈 추가
-        }
-
-        if (request.getAddress() == null || request.getAddress().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 요청");  // 👈 추가
-        }
-
-        if (request.getPhone() == null || request.getPhone().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 요청");  // 👈 추가
-        }
-
-        // Store 엔티티 생성
-        log.info("Store 엔티티 생성 중...");
-        Store store = new Store();
+        // 입력값 유효성 검증
+        validateStoreCreateRequest(request);
 
         try {
-            store.setOwner(owner);
+            Store store = new Store();
+            store.setOwner(currentUser); // 검증된 사용자 설정
             store.setBusinessNumber(request.getBusinessNumber());
             store.setName(request.getName());
             store.setDescription(request.getDescription());
@@ -150,57 +103,41 @@ public class StoreService {
             store.setDeliveryTimeMax(request.getDeliveryTimeMax());
             store.setImageUrl(request.getImageUrl());
 
-            log.info("Store 엔티티 생성 완료");
-            log.info("데이터베이스 저장 중...");
-
             Store savedStore = storeRepository.save(store);
-
             log.info("가게 등록 완료! 생성된 가게 ID: {}, 가게명: {}", savedStore.getId(), savedStore.getName());
-            log.info("=== 가게 등록 종료 ===");
-
             return savedStore;
 
         } catch (DataIntegrityViolationException e) {
-            log.error("데이터 무결성 위반 (중복 사업자등록번호 등): {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 요청");  // 👈 추가
+            log.error("데이터 무결성 위반: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복된 사업자등록번호입니다");
         } catch (Exception e) {
             log.error("가게 등록 중 예상치 못한 오류 발생: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류");  // 👈 추가
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류");
         }
     }
 
     /**
      * 내 가게 정보 조회
      */
-    public Store getMyStore() {
-        Long currentUserId = getCurrentUserId();
-        log.debug("JWT에서 추출한 사용자 ID로 가게 정보 조회: {}", currentUserId);
+    public Store getMyStore(TempUser currentUser) {
+        log.debug("가게 정보 조회 - 사용자 ID: {}", currentUser.getId());
 
-        Optional<Store> store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUserId);
-
-        if (store.isEmpty()) {
-            log.warn("등록된 가게가 없습니다. 사용자 ID: {}", currentUserId);
-            return null;  // 👈 null 반환
-        }
-
-        return store.get();
+        return storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElse(null);
     }
 
     /**
-     * 통합 가게 정보 수정 (동시성 문제 해결)
-     * 모든 가게 정보를 하나의 메소드에서 처리
+     * 가게 정보 수정
      */
     @Transactional
-    public synchronized Store updateStore(StoreUpdateRequest request) {
-        log.info("=== 통합 가게 정보 수정 시작 ===");
+    public Store updateStore(TempUser currentUser, StoreUpdateRequest request) {
+        log.info("=== 가게 정보 수정 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Store store = getMyStore();
         boolean hasChanges = false;
 
-        // 🏪 기본 정보 업데이트
         if (request.getName() != null && !request.getName().equals(store.getName())) {
             log.info("가게명 변경: {} -> {}", store.getName(), request.getName());
             store.setName(request.getName());
@@ -225,11 +162,9 @@ public class StoreService {
             hasChanges = true;
         }
 
-        if (!hasChanges) {
-            log.info("변경된 정보가 없습니다.");
-        } else {
+        if (hasChanges) {
             Store savedStore = storeRepository.save(store);
-            log.info("=== 통합 가게 정보 수정 완료 ===");
+            log.info("=== 가게 정보 수정 완료 ===");
             return savedStore;
         }
 
@@ -237,16 +172,15 @@ public class StoreService {
     }
 
     /**
-     * 통합 연락처 정보 수정
+     * 연락처 정보 수정
      */
     @Transactional
-    public synchronized Store updateContact(StoreContactRequest request) {
-        log.info("=== 가게 연락처 변경 시작 ===");
+    public Store updateContact(TempUser currentUser, StoreContactRequest request) {
+        log.info("=== 연락처 정보 수정 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Store store = getMyStore();
         boolean hasChanges = false;
 
         if (request.getPhone() != null && !request.getPhone().equals(store.getPhone())) {
@@ -257,7 +191,7 @@ public class StoreService {
 
         if (hasChanges) {
             Store savedStore = storeRepository.save(store);
-            log.info("=== 가게 연락처 변경 완료 ===");
+            log.info("=== 연락처 정보 수정 완료 ===");
             return savedStore;
         }
 
@@ -266,16 +200,15 @@ public class StoreService {
     }
 
     /**
-     * 통합 배달 정보 수정
+     * 배달 정보 수정
      */
     @Transactional
-    public synchronized Store updateDelivery(StoreDeliveryRequest request) {
-        log.info("=== 배달비/최소주문금액 변경 시작 ===");
+    public Store updateDelivery(TempUser currentUser, StoreDeliveryRequest request) {
+        log.info("=== 배달 정보 수정 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Store store = getMyStore();
         boolean hasChanges = false;
 
         if (request.getDeliveryFee() != null && !request.getDeliveryFee().equals(store.getDeliveryFee())) {
@@ -304,7 +237,7 @@ public class StoreService {
 
         if (hasChanges) {
             Store savedStore = storeRepository.save(store);
-            log.info("=== 배달 정보 변경 완료 ===");
+            log.info("=== 배달 정보 수정 완료 ===");
             return savedStore;
         }
 
@@ -313,16 +246,15 @@ public class StoreService {
     }
 
     /**
-     * 통합 위치 정보 수정
+     * 위치 정보 수정
      */
     @Transactional
-    public synchronized Store updateLocation(StoreLocationRequest request) {
-        log.info("=== 가게 위치 정보 변경 시작 ===");
+    public Store updateLocation(TempUser currentUser, StoreLocationRequest request) {
+        log.info("=== 위치 정보 수정 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Store store = getMyStore();
         boolean hasChanges = false;
 
         if (request.getAddress() != null && !request.getAddress().equals(store.getAddress())) {
@@ -337,21 +269,9 @@ public class StoreService {
             hasChanges = true;
         }
 
-//        if (request.getLatitude() != null && !request.getLatitude().equals(store.getLatitude())) {
-//            log.info("위도 변경: {} -> {}", store.getLatitude(), request.getLatitude());
-//            store.setLatitude(request.getLatitude());
-//            hasChanges = true;
-//        }
-//
-//        if (request.getLongitude() != null && !request.getLongitude().equals(store.getLongitude())) {
-//            log.info("경도 변경: {} -> {}", store.getLongitude(), request.getLongitude());
-//            store.setLongitude(request.getLongitude());
-//            hasChanges = true;
-//        }
-
         if (hasChanges) {
             Store savedStore = storeRepository.save(store);
-            log.info("=== 가게 위치 정보 변경 완료 ===");
+            log.info("=== 위치 정보 수정 완료 ===");
             return savedStore;
         }
 
@@ -363,153 +283,138 @@ public class StoreService {
      * 가게 삭제 (비활성화)
      */
     @Transactional
-    public void deleteStore() {
-        log.info("=== 가게 삭제(비활성화) 시작 ===");
+    public void deleteStore(TempUser currentUser) {
+        log.info("=== 가게 삭제 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Store store = getMyStore();
         store.setIsActive(false);
         storeRepository.save(store);
 
         log.info("가게 삭제 완료 - 가게 ID: {}, 가게명: {}", store.getId(), store.getName());
-        log.info("=== 가게 삭제(비활성화) 완료 ===");
     }
 
     /**
-     * 가게 이미지 업로드
+     * 트랜잭션 안전한 이미지 업로드
      */
     @Transactional
-    public synchronized String uploadImage(MultipartFile file) {
-        log.info("=== 가게 이미지 수정 시작 ===");
+    public String uploadImage(TempUser currentUser, MultipartFile file) {
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
-
-        Store store = getMyStore();
-        Long storeId = store.getId();
         String oldImageUrl = store.getImageUrl();
+        String tempImageUrl = null;
+        String finalImageUrl = null;
 
         try {
-            // S3에 새 이미지 업로드 (storeId 폴더에)
-            String newImageUrl = s3Service.uploadFile(file, storeId);
-            log.info("S3 업로드 성공 - Store ID: {}, URL: {}", storeId, newImageUrl);
+            // 1단계: 임시 위치에 업로드
+            tempImageUrl = s3Service.uploadFileWithTransaction(file, store.getId());
 
-            // DB에 새 URL 저장
-            log.info("이미지 URL 변경: {} -> {}", oldImageUrl, newImageUrl);
-            store.setImageUrl(newImageUrl);
-            Store savedStore = storeRepository.save(store);
+            // 2단계: DB 트랜잭션 내에서 파일 이동 및 저장
+            finalImageUrl = s3Service.moveToFinalPath(tempImageUrl, store.getId());
+            store.setImageUrl(finalImageUrl);
+            storeRepository.save(store);
 
-            // 기존 이미지 삭제 (새 이미지 저장 후)
+            // 3단계: 기존 파일 비동기 삭제 (트랜잭션 커밋 후)
             if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
-                try {
-                    s3Service.deleteFile(oldImageUrl);
-                    log.info("기존 이미지 삭제 완료: {}", oldImageUrl);
-                } catch (Exception e) {
-                    log.warn("기존 이미지 삭제 실패 (무시): {}", e.getMessage());
-                }
+                eventPublisher.publishEvent(new ImageCleanupEvent(oldImageUrl));
             }
 
-            log.info("=== 가게 이미지 수정 완료 ===");
-            return savedStore.getImageUrl();
+            return finalImageUrl;
 
         } catch (Exception e) {
-            log.error("이미지 업로드 실패 - Store ID: {}, 오류: {}", storeId, e.getMessage());
-            throw new RuntimeException("이미지 업로드에 실패했습니다: " + e.getMessage());
+            // 보상 트랜잭션: 실패시 업로드된 파일들 정리
+            cleanupFailedUpload(tempImageUrl, finalImageUrl);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 업로드에 실패했습니다");
         }
     }
 
     /**
-     * 가게 이미지 삭제
+     * 안전한 이미지 삭제
      */
     @Transactional
-    public void deleteImage(Long imageId) {
-        log.info("=== 가게 이미지 삭제 시작 ===");
+    public void deleteImage(TempUser currentUser, Long imageId) {
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
-
-        Store store = getMyStore();
-        Long storeId = store.getId();
         String currentImageUrl = store.getImageUrl();
 
         if (currentImageUrl == null || currentImageUrl.isEmpty()) {
-            log.info("삭제할 이미지가 없습니다 - Store ID: {}", storeId);
-            return;
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "삭제할 이미지가 없습니다");
         }
 
-        try {
-            // S3에서 이미지 삭제
-            s3Service.deleteFile(currentImageUrl);
-            log.info("S3에서 이미지 삭제 완료 - Store ID: {}, URL: {}", storeId, currentImageUrl);
+        // DB에서 먼저 제거 (트랜잭션 내)
+        store.setImageUrl(null);
+        storeRepository.save(store);
 
-            // DB에서 URL 제거
-            store.setImageUrl(null);
-            storeRepository.save(store);
+        // S3에서 비동기 삭제 (트랜잭션 커밋 후)
+        eventPublisher.publishEvent(new ImageCleanupEvent(currentImageUrl));
+    }
 
-            log.info("=== 가게 이미지 삭제 완료 - Store ID: {} ===", storeId);
-
-        } catch (Exception e) {
-            log.error("이미지 삭제 실패 - Store ID: {}, 오류: {}", storeId, e.getMessage());
-            throw new RuntimeException("이미지 삭제에 실패했습니다: " + e.getMessage());
+    /**
+     * 실패한 업로드 정리
+     */
+    private void cleanupFailedUpload(String tempUrl, String finalUrl) {
+        if (tempUrl != null) {
+            try {
+                s3Service.deleteFile(tempUrl);
+            } catch (Exception e) {
+                // 무시 - 배치에서 정리
+            }
+        }
+        if (finalUrl != null) {
+            try {
+                s3Service.deleteFile(finalUrl);
+            } catch (Exception e) {
+                // 무시 - 배치에서 정리
+            }
         }
     }
 
     /**
-     * 가게 운영시간 조회
+     * 운영시간 조회
      */
-    public List<StoreHour> getStoreHours() {
-        log.info("=== 가게 운영 시간 조회 ===");
+    public List<StoreHour> getStoreHours(TempUser currentUser) {
+        log.info("=== 운영시간 조회 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Store store = getMyStore();
         List<StoreHour> storeHours = store.getStoreHours();
-
         log.info("운영시간 조회 완료: {}개의 운영시간 설정", storeHours.size());
         return storeHours;
     }
 
     /**
-     * 가게 운영시간 설정
+     * 운영시간 설정
      */
     @Transactional
-    public List<StoreHourResponse> updateStoreHours(List<StoreHourRequest> requests) {
-        log.info("=== 가게 운영 시간 설정 시작 ===");
+    public List<StoreHourResponse> updateStoreHours(TempUser currentUser, List<StoreHourRequest> requests) {
+        log.info("=== 운영시간 설정 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
-
-        Store store = getMyStore();
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
         // 업데이트 대상 요일 수집
         Set<Integer> targetDays = new HashSet<>();
-
         for (StoreHourRequest request : requests) {
             if (request.getDayOfWeek() == 7) {
-                // 전체 요일 (0~6)
                 for (int day = 0; day <= 6; day++) {
                     targetDays.add(day);
                 }
             } else {
-                // 특정 요일
                 targetDays.add(request.getDayOfWeek());
             }
         }
 
-        // 해당 요일들만 DB에서 삭제
+        // 기존 운영시간 삭제
         storeHourRepository.deleteByStoreIdAndDayOfWeekIn(store.getId(), targetDays);
-
-        // 메모리에서도 해당 요일만 삭제
         store.getStoreHours().removeIf(hour -> targetDays.contains(hour.getDayOfWeek()));
 
-        // 새로운 운영시간 설정
+        // 새로운 운영시간 생성
         List<StoreHour> updatedHours = new ArrayList<>();
-
         for (StoreHourRequest request : requests) {
-            // dayOfWeek가 7이면 일주일 모든 요일에 적용 (0~6)
             if (request.getDayOfWeek() == 7) {
                 for (int day = 0; day <= 6; day++) {
                     StoreHour storeHour = StoreHour.builder()
@@ -519,11 +424,9 @@ public class StoreService {
                             .closeTime(request.getCloseTime())
                             .isClosed(request.getIsClosed())
                             .build();
-
                     updatedHours.add(storeHour);
                 }
             } else {
-                // 특정 요일만 설정
                 StoreHour storeHour = StoreHour.builder()
                         .store(store)
                         .dayOfWeek(request.getDayOfWeek())
@@ -531,17 +434,13 @@ public class StoreService {
                         .closeTime(request.getCloseTime())
                         .isClosed(request.getIsClosed())
                         .build();
-
                 updatedHours.add(storeHour);
             }
         }
 
-        // 새로운 운영시간들을 DB에 저장
         List<StoreHour> savedHours = storeHourRepository.saveAll(updatedHours);
+        log.info("=== 운영시간 설정 완료 ===");
 
-        log.info("=== 가게 운영 시간 설정 완료 ===");
-
-        // DTO로 변환해서 리턴
         return savedHours.stream()
                 .map(StoreHourResponse::from)
                 .collect(Collectors.toList());
@@ -551,166 +450,90 @@ public class StoreService {
      * 휴무일 등록
      */
     @Transactional
-    public ResponseEntity<String> createHoliday(StoreHolidayRequest request) {
-        log.info("=== 휴무일 설정 시작 ===");
+    public ResponseEntity<String> createHoliday(TempUser currentUser, StoreHolidayRequest request) {
+        log.info("=== 휴무일 등록 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        try {
-            Store store = getMyStore();
-
-            if (request.getDate() == null) {
-                return ResponseEntity.badRequest().body("휴무일을 입력해주세요");
-            }
-
-            if (request.getDate().isBefore(LocalDate.now())) {
-                return ResponseEntity.badRequest().body("과거 날짜는 휴무일로 설정할 수 없습니다");
-            }
-
-            boolean exists = storeHolidayRepository.existsByStoreIdAndDate(
-                    store.getId(),
-                    request.getDate()
-            );
-
-            if (exists) {
-                return ResponseEntity.badRequest().body("이미 등록된 휴무일입니다: " + request.getDate());
-            }
-
-            StoreHoliday holiday = StoreHoliday.builder()
-                    .store(store)
-                    .date(request.getDate())
-                    .reason(request.getReason())
-                    .isRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false)
-                    .build();
-
-            storeHolidayRepository.save(holiday);
-
-            log.info("휴무일 등록 완료: {} - {} (매년반복: {})",
-                    request.getDate(),
-                    request.getReason(),
-                    holiday.getIsRecurring());
-            log.info("=== 휴무일 설정 완료 ===");
-
-            return ResponseEntity.ok("휴무일이 성공적으로 등록되었습니다");
-
-        } catch (IllegalStateException e) {
-            log.error("휴무일 등록 실패 - 인증 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-
-        } catch (IllegalArgumentException e) {
-            log.error("휴무일 등록 실패 - 잘못된 입력: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-
-        } catch (Exception e) {
-            log.error("휴무일 등록 실패 - 서버 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("휴무일 등록 중 오류가 발생했습니다: " + e.getMessage());
+        if (request.getDate() == null) {
+            return ResponseEntity.badRequest().body("휴무일을 입력해주세요");
         }
+
+        if (request.getDate().isBefore(LocalDate.now())) {
+            return ResponseEntity.badRequest().body("과거 날짜는 휴무일로 설정할 수 없습니다");
+        }
+
+        if (storeHolidayRepository.existsByStoreIdAndDate(store.getId(), request.getDate())) {
+            return ResponseEntity.badRequest().body("이미 등록된 휴무일입니다: " + request.getDate());
+        }
+
+        StoreHoliday holiday = StoreHoliday.builder()
+                .store(store)
+                .date(request.getDate())
+                .reason(request.getReason())
+                .isRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false)
+                .build();
+
+        storeHolidayRepository.save(holiday);
+        log.info("휴무일 등록 완료: {} - {}", request.getDate(), request.getReason());
+
+        return ResponseEntity.ok("휴무일이 성공적으로 등록되었습니다");
     }
 
     /**
      * 휴무일 목록 조회
      */
-    public List<StoreHolidayResponse> getHolidays() {
-        log.info("=== 휴무일 조회 시작 ===");
+    public List<StoreHolidayResponse> getHolidays(TempUser currentUser) {
+        log.info("=== 휴무일 조회 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        try {
-            Store store = getMyStore();
+        List<StoreHoliday> holidays = storeHolidayRepository
+                .findByStoreIdAndDateGreaterThanEqualOrderByDateAsc(store.getId(), LocalDate.now());
 
-            // 현재 날짜 이후의 휴무일들만 조회
-            List<StoreHoliday> holidays = storeHolidayRepository
-                    .findByStoreIdAndDateGreaterThanEqualOrderByDateAsc(store.getId(), LocalDate.now());
+        List<StoreHolidayResponse> result = holidays.stream()
+                .map(StoreHolidayResponse::from)
+                .collect(Collectors.toList());
 
-            // Entity -> DTO 변환
-            List<StoreHolidayResponse> result = holidays.stream()
-                    .map(StoreHolidayResponse::from)
-                    .collect(Collectors.toList());
-
-            log.info("휴무일 조회 완료: {}개", result.size());
-            log.info("=== 휴무일 조회 완료 ===");
-
-            return result;
-
-        } catch (IllegalStateException e) {
-            log.error("휴무일 조회 실패 - 인증 오류: {}", e.getMessage());
-            throw e;
-
-        } catch (Exception e) {
-            log.error("휴무일 조회 실패: {}", e.getMessage());
-            throw new RuntimeException("휴무일 조회 중 오류가 발생했습니다", e);
-        }
+        log.info("휴무일 조회 완료: {}개", result.size());
+        return result;
     }
 
     /**
      * 휴무일 삭제
      */
     @Transactional
-    public ResponseEntity<String> deleteHoliday(Long holidayId) {
-        log.info("=== 휴무일 삭제 시작 ===");
-        log.info("삭제 요청 휴무일 ID: {}", holidayId);
+    public ResponseEntity<String> deleteHoliday(TempUser currentUser, Long holidayId) {
+        log.info("=== 휴무일 삭제 시작 - 사용자 ID: {}, 휴무일 ID: {} ===", currentUser.getId(), holidayId);
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        try {
-            Store store = getMyStore();
+        // 권한 검증을 위한 Repository 메소드 사용
+        StoreHoliday holiday = storeHolidayRepository.findByIdAndStoreId(holidayId, store.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "휴무일을 찾을 수 없습니다"));
 
-            // 휴무일 존재 및 권한 확인
-            StoreHoliday holiday = storeHolidayRepository.findById(holidayId)
-                    .orElse(null);
+        storeHolidayRepository.delete(holiday);
+        log.info("휴무일 삭제 완료: {} - {}", holiday.getDate(), holiday.getReason());
 
-            if (holiday == null) {
-                return ResponseEntity.badRequest().body("존재하지 않는 휴무일입니다");
-            }
-
-            if (!holiday.getStore().getId().equals(store.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("다른 가게의 휴무일은 삭제할 수 없습니다");
-            }
-
-            // 삭제
-            storeHolidayRepository.delete(holiday);
-
-            log.info("휴무일 삭제 완료: {} - {}", holiday.getDate(), holiday.getReason());
-            log.info("=== 휴무일 삭제 완료 ===");
-
-            return ResponseEntity.ok("휴무일이 성공적으로 삭제되었습니다");
-
-        } catch (IllegalStateException e) {
-            log.error("휴무일 삭제 실패 - 인증 오류: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-
-        } catch (Exception e) {
-            log.error("휴무일 삭제 실패: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("휴무일 삭제 중 오류가 발생했습니다: " + e.getMessage());
-        }
+        return ResponseEntity.ok("휴무일이 성공적으로 삭제되었습니다");
     }
 
     /**
      * 가게 상태 조회
      */
-    public StoreStatusResponse getStoreStatus() {
-        log.info("=== 가게 상태 조회 시작 ===");
+    public StoreStatusResponse getStoreStatus(TempUser currentUser) {
+        log.info("=== 가게 상태 조회 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        Store store = getMyStore();
-
-        // 현재 시간 기준 영업 상태 체크
         boolean isCurrentlyOpen = checkIfCurrentlyOpen(store);
-
-        // 오늘 영업 상태 메시지 생성
         String currentDayStatus = getCurrentDayStatusMessage(store);
 
         log.info("가게 상태 조회 완료 - 현재 영업 중: {}", isCurrentlyOpen);
-        log.info("=== 가게 상태 조회 완료 ===");
-
         return StoreStatusResponse.from(store, isCurrentlyOpen, currentDayStatus);
     }
 
@@ -718,46 +541,117 @@ public class StoreService {
      * 영업 상태 변경
      */
     @Transactional
-    public synchronized StoreStatusModifyResponse updateStoreStatus(StoreStatusRequest request) {
-        log.info("=== 영업 상태 변경 시작 ===");
+    public StoreStatusModifyResponse updateStoreStatus(TempUser currentUser, StoreStatusRequest request) {
+        log.info("=== 영업 상태 변경 시작 - 사용자 ID: {} ===", currentUser.getId());
 
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
-
-        // 유효성 검사
         if (request.getStatus() == null) {
             throw new IllegalArgumentException("영업 상태는 필수입니다.");
         }
 
-        Store store = getMyStore();
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
 
-        // 현재 상태와 동일한지 확인
         if (store.getStatus() == request.getStatus()) {
             log.info("이미 동일한 상태입니다: {}", request.getStatus());
             return StoreStatusModifyResponse.of(store, "이미 동일한 상태입니다.");
         }
 
-        // 상태 변경
         store.setStatus(request.getStatus());
 
-        // 변경 사유 로그 기록
         if (request.getMessage() != null && !request.getMessage().trim().isEmpty()) {
             log.info("영업 상태 변경 사유: {}", request.getMessage());
         }
 
+        Store savedStore = storeRepository.save(store);
         log.info("영업 상태가 {}로 변경되었습니다.", request.getStatus());
 
-        // 저장
-        Store savedStore = storeRepository.save(store);
-        log.info("=== 영업 상태 변경 완료 ===");
-
-        // Response 객체 반환
         return StoreStatusModifyResponse.of(savedStore, "영업 상태가 성공적으로 변경되었습니다.");
+    }
+
+    /**
+     * 대시보드 데이터 조회
+     */
+    public StoreDashboardResponse getDashboard(TempUser currentUser) {
+        log.info("=== 대시보드 조회 시작 - 사용자 ID: {} ===", currentUser.getId());
+
+        Store store = storeRepository.findByOwnerIdAndIsActiveTrue(currentUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없습니다"));
+
+        try {
+            // 1. 오늘 통계 데이터
+            Long todayOrderCount = storeRepository.countTodayOrdersByStoreId(store.getId());
+            BigDecimal todayRevenue = storeRepository.getTodayRevenueByStoreId(store.getId());
+
+            StoreDashboardResponse.TodayStats todayStats = new StoreDashboardResponse.TodayStats(todayOrderCount, todayRevenue);
+
+            // 2. 가게 정보
+            BigDecimal storeRating = reviewRepository.findAverageRatingByStoreId(store.getId());
+            if (storeRating == null) {
+                storeRating = BigDecimal.ZERO;
+            }
+            Long reviewCount = reviewRepository.countByStoreId(store.getId());
+            Long totalOrderCount = storeRepository.countTotalOrdersByStoreId(store.getId());
+
+            StoreDashboardResponse.RestaurantInfo restaurant = new StoreDashboardResponse.RestaurantInfo(
+                    store.getId(),
+                    store.getName(),
+                    storeRating.setScale(1, java.math.RoundingMode.HALF_UP),
+                    reviewCount,
+                    totalOrderCount
+            );
+
+            // 3. 운영시간 정보
+            List<StoreDashboardResponse.StoreHourInfo> storeHours = store.getStoreHours().stream()
+                    .map(hour -> new StoreDashboardResponse.StoreHourInfo(
+                            hour.getDayOfWeek(),
+                            hour.getOpenTime() != null ? hour.getOpenTime().toString() : null,
+                            hour.getCloseTime() != null ? hour.getCloseTime().toString() : null,
+                            hour.getIsClosed()
+                    ))
+                    .collect(Collectors.toList());
+
+            // 4. 최근 주문 정보
+            List<StoreDashboardResponse.RecentOrderInfo> recentOrders = getRecentOrdersForDashboard(store.getId());
+
+            StoreDashboardResponse response = new StoreDashboardResponse(
+                    todayStats,
+                    restaurant,
+                    storeHours,
+                    recentOrders
+            );
+
+            log.info("대시보드 조회 완료 - 오늘 주문: {}건, 오늘 매출: {}원, 평점: {}",
+                    todayOrderCount, todayRevenue, storeRating);
+
+            return response;
+
+        } catch (Exception e) {
+            log.error("대시보드 조회 실패: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "대시보드 조회 중 오류가 발생했습니다");
+        }
     }
 
     // ================================
     // Private Helper Methods
     // ================================
+
+    /**
+     * 입력값 유효성 검증
+     */
+    private void validateStoreCreateRequest(StoreCreateRequest request) {
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "가게명은 필수입니다");
+        }
+        if (request.getBusinessNumber() == null || request.getBusinessNumber().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "사업자등록번호는 필수입니다");
+        }
+        if (request.getAddress() == null || request.getAddress().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "주소는 필수입니다");
+        }
+        if (request.getPhone() == null || request.getPhone().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "전화번호는 필수입니다");
+        }
+    }
 
     /**
      * 현재 영업 중인지 체크하는 헬퍼 메서드
@@ -836,75 +730,6 @@ public class StoreService {
     }
 
     /**
-     * 가게 대시보드 데이터 조회
-     */
-    public StoreDashboardResponse getDashboard() {
-        log.info("=== 가게 대시보드 조회 시작 ===");
-
-        Long currentUserId = getCurrentUserId();
-        log.info("JWT에서 추출한 사용자 ID: {}", currentUserId);
-
-        Store store = getMyStore();
-        if (store == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "가게를 찾을 수 없음");
-        }
-
-        try {
-            // 1. 오늘 통계 데이터
-            Long todayOrderCount = storeRepository.countTodayOrdersByStoreId(store.getId());
-            BigDecimal todayRevenue = storeRepository.getTodayRevenueByStoreId(store.getId());
-
-            StoreDashboardResponse.TodayStats todayStats = new StoreDashboardResponse.TodayStats(todayOrderCount, todayRevenue);
-
-            // 2. 가게 정보
-            BigDecimal storeRating = reviewRepository.findAverageRatingByStoreId(store.getId());
-            if (storeRating == null) {
-                storeRating = BigDecimal.ZERO;
-            }
-            Long reviewCount = reviewRepository.countByStoreId(store.getId());
-            Long totalOrderCount = storeRepository.countTotalOrdersByStoreId(store.getId());
-
-            StoreDashboardResponse.RestaurantInfo restaurant = new StoreDashboardResponse.RestaurantInfo(
-                    store.getId(),
-                    store.getName(),
-                    storeRating.setScale(1, java.math.RoundingMode.HALF_UP),
-                    reviewCount,
-                    totalOrderCount
-            );
-
-            // 3. 운영시간 정보
-            List<StoreDashboardResponse.StoreHourInfo> storeHours = store.getStoreHours().stream()
-                    .map(hour -> new StoreDashboardResponse.StoreHourInfo(
-                            hour.getDayOfWeek(),
-                            hour.getOpenTime() != null ? hour.getOpenTime().toString() : null,
-                            hour.getCloseTime() != null ? hour.getCloseTime().toString() : null,
-                            hour.getIsClosed()
-                    ))
-                    .collect(Collectors.toList());
-
-            // 4. 최근 주문 정보
-            List<StoreDashboardResponse.RecentOrderInfo> recentOrders = getRecentOrdersForDashboard(store.getId());
-
-            StoreDashboardResponse response = new StoreDashboardResponse(
-                    todayStats,
-                    restaurant,
-                    storeHours,
-                    recentOrders
-            );
-
-            log.info("대시보드 조회 완료 - 오늘 주문: {}건, 오늘 매출: {}원, 평점: {}",
-                    todayOrderCount, todayRevenue, storeRating);
-            log.info("=== 가게 대시보드 조회 완료 ===");
-
-            return response;
-
-        } catch (Exception e) {
-            log.error("대시보드 조회 실패: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "대시보드 조회 중 오류가 발생했습니다");
-        }
-    }
-
-    /**
      * 대시보드용 최근 주문 정보 조회
      */
     private List<StoreDashboardResponse.RecentOrderInfo> getRecentOrdersForDashboard(Long storeId) {
@@ -931,7 +756,7 @@ public class StoreService {
                             java.time.format.DateTimeFormatter.ofPattern("MM월 dd일 HH:mm")
                     );
 
-                    return new StoreDashboardResponse.RecentOrderInfo(  // 여기도 수정!
+                    return new StoreDashboardResponse.RecentOrderInfo(
                             order.getId(),
                             order.getOrderNumber(),
                             order.getUser() != null ? order.getUser().getName() : "알 수 없음",
@@ -973,7 +798,9 @@ public class StoreService {
         return orderedAt.isBefore(now.minusMinutes(30));
     }
 
-    // 새로 추가할 메서드 - 오늘의 운영시간만 문자열로 반환
+    /**
+     * 오늘의 운영시간만 문자열로 반환
+     */
     private String getTodayOperatingHours(Store store) {
         LocalDateTime now = LocalDateTime.now();
         int currentDayOfWeek = now.getDayOfWeek().getValue(); // 1=월요일, 7=일요일
@@ -1003,5 +830,4 @@ public class StoreService {
 
         return "운영시간 확인 필요";
     }
-
 }

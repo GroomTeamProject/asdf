@@ -1,88 +1,53 @@
-// src/main/java/io/goorm/team02/core/deliveries/service/RiderDeliveryService.java
 package io.goorm.team02.core.deliveries.service;
 
 import io.goorm.team02.core.deliveries.domain.Delivery;
 import io.goorm.team02.core.deliveries.domain.enums.DeliveryStatus;
 import io.goorm.team02.core.deliveries.repository.DeliveryRepository;
-import io.goorm.team02.core.orders.domain.Order;
 import io.goorm.team02.core.orders.domain.enums.OrderStatus;
 import io.goorm.team02.core.orders.repository.OrderRepository;
-import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
-// RiderDeliveryService.java
-@Slf4j
+import java.util.NoSuchElementException;
+
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class RiderDeliveryService {
-    private final DeliveryRepository repo;
+    private final DeliveryRepository deliveryRepository;
     private final UserinfoRepository userInfoRepository;
     private final OrderRepository orderRepository;
-    private Delivery get(Long id){ return repo.findById(id).orElseThrow(); }
+
+    public Delivery accept(Long orderId, Long riderId) {
+        var order = orderRepository.findById(orderId).orElseThrow(() -> new IllegalArgumentException("Order not found" + orderId));
+        var rider = userInfoRepository.findById(riderId).orElseThrow(() -> new IllegalArgumentException("Rider not found" + riderId));
+
+        // 이미 Delivery가 있는지 확인
+        if (deliveryRepository.findByOrderId(orderId) != null) {
+            throw new IllegalStateException("이미 해당 주문에 대한 Delivery가 존재합니다. orderId=" + orderId);
+        }
+        Delivery delivery = Delivery.accept(order, rider);
+        delivery.getOrder().setStatus(OrderStatus.ACCEPTED);
+        return deliveryRepository.save(delivery);
+    }
 
     @Transactional
-    public Delivery accept(Long orderId, Long riderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("order not found: " + orderId));
-        User rider = userInfoRepository.findById(riderId)
-                .orElseThrow(() -> new IllegalArgumentException("rider not found: " + riderId));
+    public Delivery pickup(Long riderId) {
+        Delivery delivery = deliveryRepository.findByRiderIdAndStatus(riderId, DeliveryStatus.ACCEPTED)
+                .orElseThrow(() -> new NoSuchElementException("이 라이더에게 할당된 배달이 없습니다. riderId=" + riderId));
 
-        Delivery delivery = repo.findByOrder_Id(orderId)
-                .orElseGet(() -> Delivery.create(order, rider));  // get() 금지
-
-        if (delivery.getStatus() != DeliveryStatus.REQUESTED
-                && delivery.getStatus() != DeliveryStatus.ACCEPTED) {
-            throw new IllegalStateException("Delivery cannot be accepted in current state");
-        }
-
-        order.setStatus(OrderStatus.ACCEPTED);
-        delivery.setStatus(DeliveryStatus.ACCEPTED);
-        delivery.setAcceptedAt(LocalDateTime.now());
-        delivery.setDeliveryFee(order.getDeliveryFee());
-        delivery.assignRider(rider);
-
-        return repo.save(delivery);
+        delivery.pickup();
+        delivery.getOrder().setStatus(OrderStatus.PICKED_UP);
+        return delivery;
     }
+    @Transactional
+    public Delivery complete(Long riderId) {
+        Delivery delivery = deliveryRepository.findByRiderIdAndStatus(riderId, DeliveryStatus.PICKED_UP)
+                .orElseThrow(() -> new NoSuchElementException("픽업된 배달이 없습니다. riderId=" + riderId));
 
-
-
-
-    public Delivery reject(Long id, String riderId, String reason){
-        var d = get(id);
-        if (d.getStatus()!=DeliveryStatus.REQUESTED) throw new IllegalStateException("not REQUESTED");
-        d.setStatus(DeliveryStatus.CANCELLED);
-        //d.getOrder().setStatus(OrderStatus.CANCELLED);
-        return d;
-    }
-
-    public Delivery pickup(Long orderId){
-        var d = repo.findByOrder_Id(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("delivery not found"));
-        if (d.getStatus() != DeliveryStatus.ACCEPTED) {
-            throw new IllegalStateException("not ACCEPTED");
-        }
-        d.setStatus(DeliveryStatus.PICKED_UP);
-        d.getOrder().setStatus(OrderStatus.PICKED_UP);
-        d.setPickedUpAt(LocalDateTime.now());
-        return d;
-    }
-
-    public Delivery complete(Long orderId){
-        var d = repo.findByOrder_Id(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("delivery not found"));
-        if (d.getStatus() != DeliveryStatus.PICKED_UP) {
-            throw new IllegalStateException("not PICKED_UP");
-        }
-        d.setStatus(DeliveryStatus.DELIVERED);
-        d.setDeliveredAt(LocalDateTime.now());
-        d.getOrder().setStatus(OrderStatus.DELIVERED);
-        return d;
+        delivery.complete();
+        delivery.getOrder().setStatus(OrderStatus.DELIVERED);
+        return delivery;
     }
 }

@@ -7,9 +7,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // 쿠키 전송 허용 (Refresh Token용)
 })
 
-// --> Access Token 만료 체크 함수
+// Access Token 만료 체크 함수
 function isTokenExpired(token) {
   if (!token) return true
   const payload = JSON.parse(atob(token.split('.')[1]))
@@ -17,45 +18,46 @@ function isTokenExpired(token) {
   return payload.exp < now
 }
 
-
-// ---> Refresh Token 요청
+// Refresh Token 요청
 async function refreshToken() {
-  const refreshToken = localStorage.getItem('refreshToken')
-  if (!refreshToken) throw new Error('Refresh Token 없음')
+  try {
+    // 쿠키 기반이므로 null body, withCredentials=true
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/auth/refresh`,
+      null,
+      { withCredentials: true }
+    )
 
-  const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
-    refreshToken,
-  })
+    const { accessToken } = response.data
+    if (!accessToken) throw new Error('Access Token 재발급 실패')
 
-  const { accessToken, refreshToken: newRefreshToken } = response.data
-
-  localStorage.setItem('jwt', accessToken)
-  if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken)
-
-  return accessToken
+    localStorage.setItem('jwt', accessToken)
+    return accessToken
+  } catch (err) {
+    console.error('Refresh Token 오류:', err)
+    localStorage.clear()
+    window.location.href = '/login'
+    throw err
+  }
 }
 
 // 요청 인터셉터
 api.interceptors.request.use(
-  async (config) => { // <-- async 추가
+  async (config) => {
     let token = localStorage.getItem('jwt')
     console.log('🔍 JWT 토큰:', token ? '존재함' : '없음')
 
     if (token && isTokenExpired(token)) {
-      try {
-        token = await refreshToken()
-        console.log('🔄 Access Token 갱신 완료')
-      } catch (err) {
-        console.error('Refresh Token 오류:', err)
-        localStorage.clear()
-        window.location.href = '/login'
-        throw err
-      }
+      token = await refreshToken()
+      console.log('🔄 Access Token 갱신 완료')
     }
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      console.log('🔍 Authorization 헤더:', config.headers.Authorization.substring(0, 20) + '...')
+      console.log(
+        '🔍 Authorization 헤더:',
+        config.headers.Authorization.substring(0, 20) + '...'
+      )
     }
 
     console.log('🔍 요청 URL:', config.baseURL + config.url)
@@ -67,22 +69,25 @@ api.interceptors.request.use(
   }
 )
 
-
 // 응답 인터셉터
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API 응답 성공:', response.status)  // 👈 디버깅 로그
+    console.log('✅ API 응답 성공:', response.status)
     return response
   },
   (error) => {
-    console.error('❌ API 응답 오류:', error.response?.status, error.message)  // 👈 디버깅 로그
-    
+    console.error(
+      '❌ API 응답 오류:',
+      error.response?.status,
+      error.message
+    )
+
     if (error.response?.status === 401) {
       localStorage.removeItem('jwt')
       localStorage.removeItem('userEmail')
       localStorage.removeItem('userName')
       localStorage.removeItem('userType')
-      
+
       alert('로그인이 만료되었습니다. 다시 로그인해주세요.')
       window.location.href = '/login'
     }

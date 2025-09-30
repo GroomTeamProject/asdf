@@ -44,7 +44,7 @@ export const menuApi = {
   
   getCategories: () => apiManager.queueRequest(async () => {
     console.log('🔄 메뉴 카테고리 목록 조회 중...');
-    const response = await api.get('/owner/menus/categories');   
+    const response = await api.get('/owner/menus/categories');
     console.log('✅ 카테고리 목록 조회 성공');
     return response.data;   
   }),

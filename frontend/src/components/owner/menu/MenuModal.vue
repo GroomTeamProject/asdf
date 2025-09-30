@@ -56,22 +56,32 @@
 
             <div class="form-group">
               <label for="menuCategory">카테고리 *</label>
-              <select
-                id="menuCategory"
-                v-model="formData.categoryId"
-                required
-                class="form-select"
-              >
-                <option value="">카테고리 선택</option>
-                <option 
-                  v-for="category in categories" 
-                  :key="category.id" 
-                  :value="category.id"
-                  :disabled="!category.isActive"
+              <div class="category-input-group">
+                <select
+                  id="menuCategory"
+                  v-model="formData.categoryId"
+                  required
+                  class="form-select category-select"
                 >
-                  {{ category.name }} {{ !category.isActive ? '(비활성)' : '' }}
-                </option>
-              </select>
+                  <option value="">카테고리 선택</option>
+                  <option 
+                    v-for="category in categories" 
+                    :key="category.id" 
+                    :value="category.id"
+                    :disabled="!category.isActive"
+                  >
+                    {{ category.name }} {{ !category.isActive ? '(비활성)' : '' }}
+                  </option>
+                </select>
+                <button 
+                  type="button"
+                  @click="showCategoryModal = true"
+                  class="add-category-btn"
+                  title="카테고리 추가"
+                >
+                  ➕
+                </button>
+              </div>
             </div>
           </div>
 
@@ -130,31 +140,31 @@
             </div>
 
             <div class="form-group">
-                <label for="displayOrder">표시 순서</label>
-                <div class="order-input-group">
-                    <input
-                      id="displayOrder"
-                      v-model.number="formData.displayOrder"
-                      type="number"
-                      min="0"
-                      max="999"
-                      class="form-input"
-                      placeholder="자동"
-                    >
-                    <button 
-                      type="button" 
-                      @click="setToLastOrder" 
-                      class="auto-order-btn"
-                      title="마지막 순서로 설정"
-                    >
-                      📌
-                    </button>
-                  </div>
-                  <small class="help-text">
-                    0 또는 비워두면 자동으로 마지막 순서로 설정됩니다
-                  </small>
-                </div>
+              <label for="displayOrder">표시 순서</label>
+              <div class="order-input-group">
+                <input
+                  id="displayOrder"
+                  v-model.number="formData.displayOrder"
+                  type="number"
+                  min="0"
+                  max="999"
+                  class="form-input"
+                  placeholder="자동"
+                >
+                <button 
+                  type="button" 
+                  @click="setToLastOrder" 
+                  class="auto-order-btn"
+                  title="마지막 순서로 설정"
+                >
+                  📌
+                </button>
+              </div>
+              <small class="help-text">
+                0 또는 비워두면 자동으로 마지막 순서로 설정됩니다
+              </small>
             </div>
+          </div>
         </div>
 
         <!-- 이미지 삭제 옵션 (수정 시에만) -->
@@ -185,11 +195,20 @@
         </div>
       </form>
     </div>
+
+    <!-- 카테고리 추가 모달 -->
+    <CategoryModal
+      v-if="showCategoryModal"
+      @close="showCategoryModal = false"
+      @save="handleCategoryAdd"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
+import { menuApi } from '@/api/owner/menuApi'
+import CategoryModal from './CategoryModal.vue'
 
 const props = defineProps({
   menu: {
@@ -206,7 +225,10 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'save'])
+const emit = defineEmits(['close', 'save', 'categoryAdded'])
+
+// 카테고리 모달 표시 상태
+const showCategoryModal = ref(false)
 
 // 폼 데이터
 const formData = reactive({
@@ -237,6 +259,30 @@ watch(() => props.menu, (newMenu) => {
     formData.removeImage = false
   }
 }, { immediate: true })
+
+// 카테고리 추가 처리
+const handleCategoryAdd = async (categoryData) => {
+  try {
+    const newCategory = await menuApi.createCategory(categoryData)
+    showCategoryModal.value = false
+    
+    // 부모 컴포넌트에 새 카테고리 정보 전달
+    emit('categoryAdded', newCategory)
+    
+    // 새로 추가된 카테고리를 자동 선택
+    formData.categoryId = newCategory.id
+    
+    alert('카테고리가 추가되었습니다!')
+  } catch (error) {
+    console.error('카테고리 추가 실패:', error)
+    alert('카테고리 추가에 실패했습니다: ' + error.message)
+  }
+}
+
+// 마지막 순서로 설정
+const setToLastOrder = () => {
+  formData.displayOrder = 999
+}
 
 // 폼 제출 처리
 const handleSubmit = () => {
@@ -277,7 +323,6 @@ const handleSubmit = () => {
   emit('save', menuData)
 }
 </script>
-
 <style scoped>
 .modal-overlay {
   position: fixed;
@@ -385,6 +430,59 @@ const handleSubmit = () => {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 카테고리 입력 그룹 스타일 */
+.category-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.category-select {
+  flex: 1;
+}
+
+.add-category-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  min-width: 45px;
+}
+
+.add-category-btn:hover {
+  background: #059669;
+}
+
+/* 순서 입력 그룹 스타일 */
+.order-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.auto-order-btn {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  min-width: 45px;
+}
+
+.auto-order-btn:hover {
+  background: #4b5563;
 }
 
 .form-textarea {
@@ -498,6 +596,18 @@ const handleSubmit = () => {
   .current-image {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  .category-input-group {
+    flex-direction: column;
+  }
+  
+  .order-input-group {
+    flex-direction: column;
+  }
+  
+  .add-category-btn, .auto-order-btn {
+    min-width: auto;
   }
 }
 </style>

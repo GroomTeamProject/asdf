@@ -129,6 +129,7 @@
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">설정</h3>
         <div class="space-y-3">
+          
           <button
             @click="handleLogout"
             class="w-full flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
@@ -227,6 +228,8 @@ export default {
           localStorage.removeItem('jwt')
           localStorage.removeItem('userType')
           localStorage.removeItem('userId')
+          localStorage.removeItem('userEmail')
+          localStorage.removeItem('userName')
           router.push('/login')
         }
       }
