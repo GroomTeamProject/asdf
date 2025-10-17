@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickDeliver - 배달 서비스 플랫폼</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 커스텀 CSS 변수 적용 */
+        :root {
+            --font-size: 14px;
+        }
+        html {
+            font-size: var(--font-size);
+        }
+        
+        /* 와이어프레임 스타일 오버라이드 */
+        .wireframe-button {
+            @apply border-2 border-gray-400 bg-gray-50 text-gray-700 hover:bg-gray-200 transition-colors;
+        }
+        
+        .wireframe-card {
+            @apply border-2 border-gray-300 bg-white;
+        }
+    </style>
+    <script>
+        // Tailwind 설정
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#ffffff',
+                        foreground: '#030213',
+                        card: '#ffffff',
+                        'card-foreground': '#030213',
+                        primary: '#030213',
+                        'primary-foreground': '#ffffff',
+                        secondary: '#f5f5f7',
+                        'secondary-foreground': '#030213',
+                        muted: '#ececf0',
+                        'muted-foreground': '#717182',
+                        accent: '#e9ebef',
+                        'accent-foreground': '#030213',
+                        destructive: '#d4183d',
+                        'destructive-foreground': '#ffffff',
+                        border: 'rgba(0, 0, 0, 0.1)',
+                        input: 'transparent',
+                        'input-background': '#f3f3f5',
+                        ring: '#b4b8c1'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-100">
+    <!-- 메인 역할 선택 페이지 -->
+    <div class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <!-- 메인 역할 선택 카드 -->
+        <div class="w-full max-w-md wireframe-card">
+            <!-- 헤더: 서비스 제목과 설명 -->
+            <div class="text-center border-b border-gray-300 p-6">
+                <h1 class="text-3xl text-gray-800 mb-2">QuickDeliver</h1>
+                <p class="text-gray-600">
+                    배달 서비스 플랫폼
+                </p>
+            </div>
+            
+            <!-- 콘텐츠: 역할 선택 버튼들 -->
+            <div class="space-y-4 p-6">
+                <div class="grid gap-3">
+                    <!-- 고객 역할 선택 버튼 -->
+                    <button 
+                        onclick="navigateToRole('customer')"
+                        class="w-full h-12 wireframe-button rounded-md"
+                    >
+                        고객으로 시작하기
+                    </button>
+                    
+                    <!-- 점주 역할 선택 버튼 -->
+                    <button 
+                        onclick="navigateToRole('owner')"
+                        class="w-full h-12 wireframe-button rounded-md"
+                    >
+                        점주로 시작하기
+                    </button>
+                    
+                    <!-- 배달원 역할 선택 버튼 -->
+                    <button 
+                        onclick="navigateToRole('driver')"
+                        class="w-full h-12 wireframe-button rounded-md"
+                    >
+                        배달원으로 시작하기
+                    </button>
+                    
+                    <!-- 구분선 및 플로우 다이어그램 버튼 -->
+                    <div class="border-t border-gray-300 pt-3 mt-4">
+                        <button 
+                            onclick="navigateToFlow()"
+                            class="w-full h-12 border-2 border-gray-600 bg-gray-50 text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+                        >
+                            📋 플로우 다이어그램 보기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 선택된 역할에 따라 해당 페이지로 이동하는 함수
+         * @param {string} role - 사용자 역할 ('customer', 'owner', 'driver')
+         */
+        function navigateToRole(role) {
+            // 선택된 역할을 localStorage에 저장 (필요시 사용)
+            localStorage.setItem('selectedRole', role);
+            
+            // 각 역할별 페이지로 이동
+            switch(role) {
+                case 'customer':
+                    window.location.href = './customer/index.html';
+                    break;
+                case 'owner':
+                    window.location.href = './owner/index.html';
+                    break;
+                case 'driver':
+                    window.location.href = './driver/index.html';
+                    break;
+                default:
+                    console.error('Unknown role:', role);
+            }
+        }
+
+        /**
+         * 플로우 다이어그램 페이지로 이동하는 함수
+         */
+        function navigateToFlow() {
+            window.location.href = './flow.html';
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 필요시 초기화 로직 추가
+            console.log('QuickDeliver 메인 페이지가 로드되었습니다.');
+        });
+    </script>
+</body>
+</html>

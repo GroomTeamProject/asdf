@@ -1,0 +1,68 @@
+name: (develop) Springboot CD - Deploy 
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/**'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/team02-backend
+
+jobs:
+  deploy_backend:
+    runs-on: [self-hosted, ec2, dev]
+    if: github.event.pull_request.merged == true
+    steps:
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      
+    - name: Pull Docker image
+      run: |
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+    - name: Stop existing container
+      run: |
+        docker stop springboot-app || true
+        docker rm springboot-app || true
+
+    - name: Start new container
+      run: |
+        docker run -d \
+          --name springboot-app \
+          --restart unless-stopped \
+          -p 8080:8080 \
+          -e SPRING_PROFILES_ACTIVE=dev \
+          -e DB_URL_DEV="${{ secrets.DB_URL_DEV }}" \
+          -e DB_USERNAME_DEV="${{ secrets.DB_USERNAME_DEV }}" \
+          -e DB_PASSWORD_DEV="${{ secrets.DB_PASSWORD_DEV }}" \
+          -e ORIGIN_URL_DEV="${{ secrets.ORIGIN_URL_DEV }}" \
+          -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+          -e AWS_ACCESS_KEY="${{ secrets.AWS_ACCESS_KEY }}" \
+          -e AWS_SECRET_KEY="${{ secrets.AWS_SECRET_KEY }}" \
+          -e AWS_REGION="${{ secrets.AWS_REGION }}" \
+          -e AWS_S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}" \
+          -e TOSS_CLIENT_KEY="${{ secrets.TOSS_CLIENT_KEY }}" \
+          -e TOSS_SECRET_KEY="${{ secrets.TOSS_SECRET_KEY }}" \
+          "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+    - name: Verify deployment
+      run: |
+        sleep 10
+        if docker ps | grep -q springboot-app; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+          docker logs springboot-app
+          exit 1
+        fi
+
+    - name: Clean up unused Docker images
+      run: docker image prune -af
+

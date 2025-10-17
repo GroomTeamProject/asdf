@@ -1,0 +1,16 @@
+{
+  "plugins": [],
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "singleAttributePerLine": false,
+  "bracketSameLine": false,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "semi": false,
+  "useTabs": false,
+  "tabWidth": 2,
+  "printWidth": 140,  
+  "endOfLine": "auto",
+  "quoteProps": "as-needed",
+  "proseWrap": "preserve"
+}

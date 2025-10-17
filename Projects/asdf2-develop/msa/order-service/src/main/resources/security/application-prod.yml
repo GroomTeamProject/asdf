@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: ${ORDER_SERVICE_DB_URL}
+    username: ${ORDER_SERVICE_DB_USERNAME}
+    password: ${ORDER_SERVICE_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: none
+      dialect: org.hibernate.dialect.MariaDBDialect
+  flyway:
+    enabled: false # 수동으로 Bean을 등록하기 위해 비활성화
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+msa:
+  gateway:
+    url: ${MSA_GATEWAY_URL}
+
+jwt:
+  secret: ${JWT_SECRET}

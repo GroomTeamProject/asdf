@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    openfeign:
+      enabled: true
+
+# Test configuration
+order:
+  service:
+    url: http://localhost:9999  # Mock server URL

@@ -1,0 +1,38 @@
+server:
+  port: 8082
+  shutdown: immediate
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: ${USER_SERVICE_DB_URL} #${DB_URL_LOCAL}
+    username: ${USER_SERVICE_DB_USERNAME} #${DB_USERNAME_LOCAL}
+    password: ${USER_SERVICE_DB_PASSWORD} #${DB_PASSWORD_LOCAL}
+  jpa:
+    hibernate:
+      ddl-auto: none
+      dialect: org.hibernate.dialect.MariaDBDialect
+  flyway:
+    enabled: false # 수동으로 Bean을 등록하기 위해 비활성화
+  kafka:
+    bootstrap-servers: localhost:9092
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+    region:
+      static: ${AWS_REGION}
+    stack:
+      auto: false
+
+msa:
+  gateway:
+    url: http://localhost:8080
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 3600000
+

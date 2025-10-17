@@ -1,0 +1,44 @@
+server:
+  port: 8085
+spring:
+  application:
+    name: team02order
+  kafka:
+    consumer:
+      group-id: team02-backend-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 10000
+---
+spring:
+  config:
+    import: classpath:security/application-local.yml
+    activate:
+      on-profile: local
+---
+spring:
+  config:
+    import: classpath:security/application-dev.yml
+    activate:
+      on-profile: dev
+---
+spring:
+  config:
+    import: classpath:security/application-prod.yml
+    activate:
+      on-profile: prod
+---
+spring:
+  config:
+    import: classpath:security/application-test.yml
+    activate:
+      on-profile: test

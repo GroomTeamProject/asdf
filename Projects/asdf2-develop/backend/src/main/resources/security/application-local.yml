@@ -1,0 +1,35 @@
+server:
+  port: 8080
+  shutdown: immediate
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: ${DB_URL_LOCAL}
+    username: ${DB_USERNAME_LOCAL}
+    password: ${DB_PASSWORD_LOCAL}
+  jpa:
+    hibernate:
+      ddl-auto: none
+      dialect: org.hibernate.dialect.MariaDBDialect
+  flyway:
+    enabled: false # 수동으로 Bean을 등록하기 위해 비활성화
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+    region:
+      static: ${AWS_REGION}
+    stack:
+      auto: false
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 3600000
+
+toss:
+  clientKey: ${TOSS_CLIENT_KEY}
+  secretKey: ${TOSS_SECRET_KEY}

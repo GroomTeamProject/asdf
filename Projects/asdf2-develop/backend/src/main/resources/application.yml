@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: team02core
+
+---
+
+spring:
+  config:
+    import: classpath:security/application-local.yml
+    activate:
+      on-profile: local
+
+---
+
+spring:
+  config:
+    import: classpath:security/application-dev.yml
+    activate:
+      on-profile: dev
+
+---
+
+spring:
+  config:
+    import: classpath:security/application-prod.yml
+    activate:
+      on-profile: prod
+
+---
+
+spring:
+  config:
+    import: classpath:security/application-test.yml
+    activate:
+      on-profile: test
+
+---
+
+# 파일 업로드 설정
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# 커스텀 설정
+app:
+  s3:
+    folder: store
+
+# Rider 서비스에서 Order 서비스 API 호출용 베이스 URL
+# - 기본값은 로컬 실행 시 http://localhost:8080
+# - 환경별로 ORDER_SERVICE_URL 환경변수로 덮어써서 사용
+order-service:
+  url: ${ORDER_SERVICE_URL:http://localhost:8080}
+
+
+
+  

@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              "[/**]":
+                allowedOrigins: "*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+                allowCredentials: false
+          routes:
+            - id: demo-service
+              uri: ${DEMO_SERVICE_URL:http://localhost:8090}
+              predicates:
+                - Path=/api/demo/**
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/orders/**
+            - id: user-service                
+              uri: ${USER_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/users/** , /api/auth/**,
+
+# Logging
+logging:
+  level:
+    io.goorm.team02.gateway: INFO
+    org.springframework.cloud.gateway: WARN
+    org.springframework.web.reactive: WARN
+    reactor.netty: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"
