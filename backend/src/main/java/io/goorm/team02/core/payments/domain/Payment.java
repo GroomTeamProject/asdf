@@ -20,44 +20,46 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 
 public class Payment {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	private BigDecimal amount;
+    private BigDecimal amount;
 
-	private String paymentMethod;
+    private String paymentMethod;
 
-	@Enumerated(EnumType.STRING)
-	private PaymentStatus status;
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus status;
 
-	private String paymentKey;
+    private String paymentKey;
 
-	private String pgProvider;
+    private String pgProvider;
 
-	private String pgTid;
+    private String pgTid;
 
-	private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-	private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "order_id")
-	@JsonBackReference
-	private Order order;
+    private LocalDateTime approvedAt;
 
-	public Payment(BigDecimal amount, String paymentMethod, PaymentStatus status, String paymentKey,
-			String pgProvider, String pgTid, Order order) {
-		this.amount = amount;
-		this.paymentMethod = paymentMethod;
-		this.status = status;
-		this.paymentKey = paymentKey;
-		this.pgProvider = pgProvider;
-		this.pgTid = pgTid;
-		this.order = order;
-	}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    @JsonBackReference
+    private Order order;
 
-	public void setStatus(PaymentStatus status) {
-		this.status = status;
-	}
+    public Payment(BigDecimal amount, String paymentMethod, PaymentStatus status, String paymentKey,
+                   String pgProvider, String pgTid, Order order) {
+        this.amount = amount;
+        this.paymentMethod = paymentMethod;
+        this.status = status;
+        this.paymentKey = paymentKey;
+        this.pgProvider = pgProvider;
+        this.pgTid = pgTid;
+        this.order = order;
+    }
+
+    public void setStatus(PaymentStatus status) {
+        this.status = status;
+    }
 }

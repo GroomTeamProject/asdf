@@ -11,13 +11,6 @@
         @blur="onBlur"
         @input="onInput"
       />
-
-      <!-- Dropdown Search Results -->
-      <div v-if="isSearchOpen" class="absolute top-full left-0 right-0 bg-white border-2 border-gray-400 rounded-md shadow-lg z-10 mt-1">
-        <div class="p-4">
-          <div class="text-gray-600 text-center py-8">검색 결과가 여기에 표시됩니다</div>
-        </div>
-      </div>
     </div>
   </div>
 </template>

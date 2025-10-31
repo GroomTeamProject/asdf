@@ -1,0 +1,315 @@
+services:
+  # Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: msa-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: msa-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+
+  # Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: msa-kafka-ui
+    ports:
+      - "9001:8080"
+    environment:
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
+
+  # Delivery Service MariaDB
+  delivery-mariadb:
+    image: mariadb:12.0
+    container_name: msa-delivery-mariadb
+    ports:
+      - "33087:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: team02delivery
+    volumes:
+      - delivery_mariadb_data:/var/lib/mysql
+
+  # Delivery Service
+  delivery-service:
+    build:
+      context: ./delivery-service
+      dockerfile: Dockerfile
+    container_name: msa-delivery
+    ports:
+      - "8087:8087"
+    env_file:
+      - .env.dev
+    depends_on:
+      - kafka
+      - delivery-mariadb
+
+  # Order Service MariaDB
+  order-mariadb:
+    image: mariadb:12.0
+    container_name: msa-order-mariadb
+    ports:
+      - "33085:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: team02order
+    volumes:
+      - order_mariadb_data:/var/lib/mysql
+
+  # Order Service
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: msa-order
+    ports:
+      - "8085:8085"
+    env_file:
+      - .env.dev
+    depends_on:
+      - kafka
+      - order-mariadb
+
+  # Review Service MariaDB
+  review-mariadb:
+    image: mariadb:12.0
+    container_name: msa-review-mariadb
+    ports:
+      - "33086:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: team02review
+    volumes:
+      - review_mariadb_data:/var/lib/mysql
+
+  # Review Service
+  review-service:
+    build:
+      context: ./review-service
+      dockerfile: Dockerfile
+    container_name: msa-review
+    ports:
+      - "8086:8086"
+    env_file:
+      - .env.dev
+    depends_on:
+      - kafka
+      - review-mariadb
+
+  # Notification Service MariaDB
+  notification-mariadb:
+    image: mariadb:12.0
+    container_name: msa-notification-mariadb
+    ports:
+      - "33088:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: team02notification
+    volumes:
+      - notification_mariadb_data:/var/lib/mysql
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: msa-notification
+    ports:
+      - "8088:8088"
+    env_file:
+      - .env.dev
+    depends_on:
+      - kafka
+      - notification-mariadb
+
+  # ✅ User Service MariaDB
+  user-mariadb:
+    image: mariadb:12.0
+    container_name: msa-user-mariadb
+    ports:
+      - "33082:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: team02user
+    volumes:
+      - user_mariadb_data:/var/lib/mysql
+
+  # ✅ User Service
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: msa-user
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env.dev
+    depends_on:
+      - kafka
+      - user-mariadb
+
+  # Owner Service MariaDB
+  owner-mariadb:
+    image: mariadb:12.0
+    container_name: msa-owner-mariadb
+    ports:
+      - "33081:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: team02owner
+    volumes:
+      - owner_mariadb_data:/var/lib/mysql
+
+  # Owner Service
+  owner-service:
+    build:
+      context: ./owner-service
+      dockerfile: Dockerfile
+    container_name: msa-owner
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env.dev
+    depends_on:
+      - kafka
+      - owner-mariadb
+
+  # Payment Service MariaDB
+  payment-mariadb:
+    image: mariadb:12.0
+    container_name: msa-payment-mariadb
+    ports:
+      - "33084:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: team02payment
+    volumes:
+      - payment_mariadb_data:/var/lib/mysql
+
+  # payment Service
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: msa-payment
+    ports:
+      - "8084:8084"
+    env_file:
+      - .env.dev
+    depends_on:
+      - kafka
+      - payment-mariadb
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: msa-gateway
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.dev
+    environment:
+      OWNER_SERVICE_URL: http://owner-service:8081
+      USER_SERVICE_URL: http://user-service:8082
+      ORDER_SERVICE_URL: http://order-service:8085
+      REVIEW_SERVICE_URL: http://review-service:8086
+      DELIVERY_SERVICE_URL: http://delivery-service:8087
+      NOTIFICATION_SERVICE_URL: http://notification-service:8088
+      PAYMETN_SERVICE_URL: http://payment-service:8084
+    depends_on:
+      - owner-service
+      - order-service
+      - review-service
+      - notification-service
+      - user-service
+      - delivery-service
+
+  # Prometheus (메트릭 수집)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: msa-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+
+  # Loki (로그 저장)
+  loki:
+    image: grafana/loki:latest
+    container_name: msa-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  # Promtail (로그 수집)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: msa-promtail
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # Grafana (시각화 대시보드)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: msa-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+volumes:
+  owner_mariadb_data:
+  order_mariadb_data:
+  review_mariadb_data:
+  notification_mariadb_data:
+  user_mariadb_data:
+  delivery_mariadb_data:
+  payment_mariadb_data:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+
+networks:
+  default:
+    name: msa-network
+

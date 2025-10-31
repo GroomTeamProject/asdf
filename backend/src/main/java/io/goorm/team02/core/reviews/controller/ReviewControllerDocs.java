@@ -3,6 +3,8 @@ package io.goorm.team02.core.reviews.controller;
 import io.goorm.team02.core.reviews.controller.dto.OwnerReplyRequest;
 import io.goorm.team02.core.reviews.controller.dto.ReviewRequest;
 import io.goorm.team02.core.reviews.controller.dto.ReviewResponse;
+import io.goorm.team02.core.auth.annotation.CurrentUser;
+import io.goorm.team02.core.stores.domain.TempUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,7 +27,7 @@ public interface ReviewControllerDocs {
             @ApiResponse(responseCode = "409", description = "이미 리뷰가 작성된 주문"),
             @ApiResponse(responseCode = "403", description = "본인의 주문에만 리뷰 작성 가능")
     })
-    public ReviewResponse create(@RequestBody ReviewRequest reviewRequest);
+    public ReviewResponse create(@RequestBody ReviewRequest reviewRequest, @CurrentUser TempUser user);
 
     @Operation(summary = "가게별 리뷰 목록 조회", description = "특정 가게의 리뷰 목록을 조회합니다")
     @ApiResponses({
@@ -49,7 +51,7 @@ public interface ReviewControllerDocs {
             @ApiResponse(responseCode = "404", description = "리뷰를 찾을 수 없음")
     })
     public ReviewResponse getById(
-            @Parameter(description = "리뷰 ID", required = true) @PathVariable Long reviewId);
+            @Parameter(description = "리뷰 ID", required = true) @PathVariable Long reviewId, @CurrentUser TempUser user);
 
     @Operation(summary = "리뷰 수정", description = "기존 리뷰를 수정합니다")
     @ApiResponses({
@@ -59,7 +61,7 @@ public interface ReviewControllerDocs {
     })
     public ReviewResponse update(
             @Parameter(description = "리뷰 ID", required = true) @PathVariable Long reviewId,
-            @RequestBody ReviewRequest reviewRequest);
+            @RequestBody ReviewRequest reviewRequest, @CurrentUser TempUser user);
 
     @Operation(summary = "리뷰 삭제", description = "리뷰를 삭제합니다")
     @ApiResponses({
@@ -67,7 +69,7 @@ public interface ReviewControllerDocs {
             @ApiResponse(responseCode = "404", description = "리뷰를 찾을 수 없음")
     })
     public void delete(
-            @Parameter(description = "리뷰 ID", required = true) @PathVariable Long reviewId);
+            @Parameter(description = "리뷰 ID", required = true) @PathVariable Long reviewId, @CurrentUser TempUser user);
 
     @Operation(summary = "사장님 답글 작성", description = "리뷰에 사장님 답글을 작성합니다")
     @ApiResponses({

@@ -7,7 +7,6 @@ export const customerApi = {
    */
   getStores: () =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 가게 목록 조회 중...')
       const response = await api.get('/stores')
       console.log('✅ 가게 목록 조회 성공')
       return response.data
@@ -15,7 +14,6 @@ export const customerApi = {
 
   getStoreById: (storeId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 가게 상세 조회 중...')
       const response = await api.get(`/stores/${storeId}`)
       console.log('✅ 가게 상세 조회 성공')
       return response.data
@@ -23,7 +21,6 @@ export const customerApi = {
 
   getMenusByStoreId: (storeId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 메뉴 목록 조회 중...')
       const response = await api.get(`/stores/${storeId}/menus`)
       console.log('✅ 메뉴 목록 조회 성공')
       return response.data
@@ -31,7 +28,6 @@ export const customerApi = {
 
   getMenuById: (storeId, menuId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 메뉴 상세 조회 중...')
       const response = await api.get(`/stores/${storeId}/menus/${menuId}`)
       console.log('✅ 메뉴 상세 조회 성공')
       return response.data
@@ -42,7 +38,6 @@ export const customerApi = {
    */
   createOrder: (orderData) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 주문 생성 중...')
       const response = await api.post('/orders', orderData)
       console.log('✅ 주문 생성 성공')
       return response.data
@@ -50,7 +45,6 @@ export const customerApi = {
 
   getOrders: (storeId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 주문 목록 조회 중...')
       const response = await api.get('/orders', {
         params: { storeId },
       })
@@ -61,16 +55,13 @@ export const customerApi = {
   // 사용자 주문 내역 조회 (storeId 없이)
   getMyOrders: (page = 0, size = 20) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 내 주문 내역 조회 중...')
-      const userId = localStorage.getItem('userId')
-      const response = await api.get(`/orders?userId=${userId}&page=${page}&size=${size}`)
+      const response = await api.get(`/orders?page=${page}&size=${size}`)
       console.log('✅ 내 주문 내역 조회 성공')
       return response.data
     }),
 
   getOrderDetail: (orderId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 주문 상세 조회 중...')
       const response = await api.get(`/orders/${orderId}`)
       console.log('✅ 주문 상세 조회 성공')
       return response.data
@@ -78,7 +69,6 @@ export const customerApi = {
 
   acceptOrder: (orderId, acceptData) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 주문 수락 중...')
       const response = await api.put(`/orders/${orderId}/accept`, {
         minCookingTime: acceptData.minCookingTime,
         maxCookingTime: acceptData.maxCookingTime,
@@ -89,7 +79,6 @@ export const customerApi = {
 
   rejectOrder: (orderId, rejectData) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 주문 거절 중...')
       const response = await api.put(`/orders/${orderId}/reject`, {
         reason: rejectData.reason,
       })
@@ -99,7 +88,6 @@ export const customerApi = {
 
   startCooking: (orderId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 조리 시작 중...')
       const response = await api.put(`/orders/${orderId}/start-cooking`)
       console.log('✅ 조리 시작 성공')
       return response.data
@@ -107,7 +95,6 @@ export const customerApi = {
 
   completeCooking: (orderId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 조리 완료 중...')
       const response = await api.put(`/orders/${orderId}/complete-cooking`)
       console.log('✅ 조리 완료 성공')
       return response.data
@@ -115,7 +102,6 @@ export const customerApi = {
 
   deliverOrder: (orderId) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 배달 완료 중...')
       const response = await api.put(`/orders/${orderId}/deliver`)
       console.log('✅ 배달 완료 성공')
       return response.data
@@ -123,7 +109,6 @@ export const customerApi = {
 
   cancelOrder: (orderId, cancelData) =>
     apiManager.queueRequest(async () => {
-      console.log('🔄 주문 취소 중...')
       const response = await api.put(`/orders/${orderId}/cancel`, {
         cancelReason: cancelData.cancelReason,
       })

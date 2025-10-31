@@ -5,6 +5,9 @@ import io.goorm.team02.core.reviews.controller.dto.ReviewRequest;
 import io.goorm.team02.core.reviews.controller.dto.ReviewResponse;
 import io.goorm.team02.core.reviews.domain.Review;
 import io.goorm.team02.core.reviews.service.ReviewService;
+import io.goorm.team02.core.auth.annotation.CurrentUser;
+import io.goorm.team02.core.stores.domain.TempUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +21,8 @@ public class ReviewController implements ReviewControllerDocs {
     private final ReviewService reviewService;
 
     @PostMapping
-    public ReviewResponse create(@RequestBody ReviewRequest reviewRequest) {
-        Review review = reviewService.create(reviewRequest);
+    public ReviewResponse create(@Valid @RequestBody ReviewRequest reviewRequest, @CurrentUser TempUser user) {
+        Review review = reviewService.create(reviewRequest, user.getId());
         return ReviewResponse.from(review);
     }
 
@@ -40,20 +43,20 @@ public class ReviewController implements ReviewControllerDocs {
     }
 
     @GetMapping("/{reviewId}")
-    public ReviewResponse getById(@PathVariable Long reviewId) {
-        Review review = reviewService.getById(reviewId);
+    public ReviewResponse getById(@PathVariable Long reviewId, @CurrentUser TempUser user) {
+        Review review = reviewService.getById(reviewId, user.getId());
         return ReviewResponse.from(review);
     }
 
     @PutMapping("/{reviewId}")
-    public ReviewResponse update(@PathVariable Long reviewId, @RequestBody ReviewRequest reviewRequest) {
-        Review review = reviewService.update(reviewId, reviewRequest);
+    public ReviewResponse update(@PathVariable Long reviewId, @Valid @RequestBody ReviewRequest reviewRequest, @CurrentUser TempUser user) {
+        Review review = reviewService.update(reviewId, reviewRequest, user.getId());
         return ReviewResponse.from(review);
     }
 
     @DeleteMapping("/{reviewId}")
-    public void delete(@PathVariable Long reviewId) {
-        reviewService.delete(reviewId);
+    public void delete(@PathVariable Long reviewId, @CurrentUser TempUser user) {
+        reviewService.delete(reviewId, user.getId());
     }
 
     @PostMapping("/{reviewId}/reply")

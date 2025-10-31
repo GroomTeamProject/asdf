@@ -1,37 +1,35 @@
-// io/goorm/team02/core/deliveries/controller/dto/DeliveryResponse.java
 package io.goorm.team02.core.deliveries.controller.dto;
 
 import io.goorm.team02.core.deliveries.domain.Delivery;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record DeliveryResponse(
-        Long deliveryId,
+        Long id,
         Long orderId,
-        String status,
-        String riderId,
+        Long riderId,
         String pickupAddress,
-        String deliveryAddress,
+        String completeAddress,
         Integer estimatedTime,
-        String distanceKm,
-        LocalDateTime requestedAt,
+        BigDecimal distanceKm,
         LocalDateTime acceptedAt,
         LocalDateTime pickedUpAt,
-        LocalDateTime deliveredAt
+        LocalDateTime deliveredAt,
+        BigDecimal deliveryFee // <- BigDecimal, 마지막에 콤마 없음
 ) {
     public static DeliveryResponse of(Delivery d) {
         return new DeliveryResponse(
                 d.getId(),
                 d.getOrder().getId(),
-                d.getStatus().name(),
-                d.getRider()!=null ? String.valueOf(d.getRider().getId()) : null,
+                d.getRider() != null ? d.getRider().getId() : null,
                 d.getPickupAddress(),
-                d.getDeliveryAddress(),
+                d.getDeliveryAddress(), // 필드명은 completeAddress지만 값은 deliveryAddress 사용
                 d.getEstimatedTime(),
-                d.getDistanceKm()!=null ? d.getDistanceKm().toPlainString() : null,
-                d.getRequestedAt(),
+                d.getDistanceKm(),
                 d.getAcceptedAt(),
                 d.getPickedUpAt(),
-                d.getDeliveredAt()
+                d.getDeliveredAt(),
+                d.getDeliveryFee()
         );
     }
 }

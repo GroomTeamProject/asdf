@@ -71,9 +71,29 @@ export default {
   setup(props) {
     const router = useRouter()
 
-    const onClick = () => {
+    /*const onClick = () => {
       router.push(`/customer/stores/${props.store.id}`)
-    }
+    }*/
+
+    const onClick = () => {
+      const userType = localStorage.getItem('userType')  // 로그인 상태 확인
+
+      if (!userType) {
+        alert('로그인이 필요한 기능입니다.')
+        router.push('/login')
+        return
+      }
+
+      if (userType != 'CUSTOMER') {
+        alert('고객만 주문할 수 있습니다.')
+        return
+      }
+
+  // CUSTOMER만 접근 가능
+  router.push(`/customer/stores/${props.store.id}`)
+}
+
+
 
     const handleImageError = (event) => {
       // 이미지 로드 실패 시 기본 이미지로 대체

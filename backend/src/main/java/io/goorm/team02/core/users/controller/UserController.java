@@ -9,8 +9,10 @@ import io.goorm.team02.core.users.controller.dto.UserAddressRequest;
 import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.domain.UserAddress;
 import io.goorm.team02.core.users.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -103,9 +105,20 @@ public class UserController implements UserControllerDocs {
     @PatchMapping("/me/password") // put이 아니라, patch??
     public ResponseEntity<?> changePassword(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody ProfilePasswordEdit request
+            @RequestBody ProfilePasswordEdit request,
+            HttpServletResponse response
     ) {
         userService.changePassword(userDetails.getUsername(), request.getCurrentPassword(), request.getNewPassword());
+        // 3) 쿠키 삭제
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/auth/refresh")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+        response.addHeader("Set-Cookie", deleteCookie.toString());
+
         return ResponseEntity.ok("Password changed successfully");
     }
 

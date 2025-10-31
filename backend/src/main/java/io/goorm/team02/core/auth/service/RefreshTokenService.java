@@ -38,4 +38,16 @@ public class RefreshTokenService {
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
+
+    // 로그아웃시 refresh 토큰 삭제
+    public void deleteRefreshToken(String token) {
+        refreshTokenRepository.findByToken(token)
+            .ifPresent(refreshTokenRepository::delete);
+    }
+
+    // 비밀번호 변경시 토큰 삭제 , 모든 
+    public void deleteByUser(User user) {
+        refreshTokenRepository.deleteByUser(user);
+    }
+
 }

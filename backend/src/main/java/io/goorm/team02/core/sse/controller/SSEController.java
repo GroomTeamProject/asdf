@@ -3,7 +3,10 @@ package io.goorm.team02.core.sse.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import io.goorm.team02.core.sse.service.SSEConnectionService;
@@ -21,24 +24,22 @@ public class SSEController {
     private final SSEConnectionService sseConnectionService;
 
     /**
-     * 사용자 SSE 연결 생성
+     * 사용자 SSE 연결 생성 (인증된 사용자만)
      * 
-     * @param userId 사용자 ID
      * @return SseEmitter
      */
-    @GetMapping(value = "/connect/{userId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter connect(@PathVariable Long userId) {
+    @GetMapping(value = "/connect", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter connect(@RequestAttribute("userId") Long userId) {
         return sseConnectionService.createConnection(userId);
     }
 
     /**
-     * 연결 상태 확인
+     * 연결 상태 확인 (인증된 사용자만)
      * 
-     * @param userId 사용자 ID
      * @return 연결 상태
      */
-    @GetMapping("/status/{userId}")
-    public boolean getConnectionStatus(@PathVariable Long userId) {
+    @GetMapping("/status")
+    public boolean getConnectionStatus(@RequestAttribute("userId") Long userId) {
         return sseConnectionService.isUserConnected(userId);
     }
 }

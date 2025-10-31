@@ -104,7 +104,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { userApi } from '@/api/customer/userApi'
+import { customerService } from '@/services/customer/customerService'
 
 export default {
   name: 'EditProfile',
@@ -129,8 +129,8 @@ export default {
         const userId = localStorage.getItem('userId')
         
         if (userId) {
-          const updatedProfile = await userApi.updateUserProfile(userId, editForm.value)
-          userProfile.value = updatedProfile
+          const result = await customerService.updateUserProfile(userId, editForm.value)
+          userProfile.value = result.data
           alert('회원정보가 성공적으로 수정되었습니다.')
           goBack()
         }
@@ -147,7 +147,8 @@ export default {
         const userId = localStorage.getItem('userId')
         
         if (userId) {
-          const profile = await userApi.getUserProfile(userId)
+          const result = await customerService.getUserProfile(userId)
+          const profile = result.data
           userProfile.value = profile
           
           // 폼에 현재 데이터 설정

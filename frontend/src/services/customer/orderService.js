@@ -12,7 +12,7 @@ export class OrderService {
       if (!groups[storeId]) {
         groups[storeId] = {
           storeId,
-          storeName: item.storeName || '알 수 없는 가게',
+          storeName: item.storeName,
           items: [],
         }
       }
@@ -101,21 +101,8 @@ export class OrderService {
         options: []
       }
       
-      // 선택된 옵션들을 백엔드 스키마에 맞게 변환
-      if (cartItem.selectedOptions && cartItem.menuOptions) {
-        Object.entries(cartItem.selectedOptions).forEach(([optionGroupId, selectedItemId]) => {
-          const optionGroup = cartItem.menuOptions.find(opt => opt.id == optionGroupId)
-          if (optionGroup) {
-            const selectedItem = optionGroup.items?.find(item => item.id == selectedItemId)
-            if (selectedItem) {
-              orderItem.options.push({
-                optionId: parseInt(optionGroupId),
-                optionItemId: parseInt(selectedItemId)
-              })
-            }
-          }
-        })
-      }
+      // 옵션은 PaymentButton에서 직접 처리하므로 여기서는 빈 배열로 설정
+      orderItem.options = []
       
       return orderItem
     })
@@ -123,11 +110,11 @@ export class OrderService {
     // 백엔드 OrderRequest 구조에 맞춤
     return {
       userId: localStorage.getItem('userId'),
-      storeId: orderItems[0]?.storeId || 1, // TODO: 실제 가게 ID로 교체
+      storeId: orderItems[0]?.storeId,
       deliveryAddress: deliveryAddress,
-      deliveryDetailAddress: deliveryDetailAddress || '',
+      deliveryDetailAddress: deliveryDetailAddress,
       phone: phoneNumber,
-      orderMemo: orderMemo || '',
+      orderMemo: orderMemo,
       orderItems: orderItemsData
     }
   }
@@ -142,8 +129,8 @@ export class OrderService {
       
       return {
         success: true,
-        orderNumber: result.orderNumber || result.order_number || `ORD-${Date.now()}`,
-        message: result.message || '주문이 성공적으로 접수되었습니다!'
+        orderNumber: result.orderNumber || result.order_number,
+        message: result.message
       }
     } catch (error) {
       console.error('주문 제출 실패:', error)
@@ -161,6 +148,68 @@ export class OrderService {
   // 주문 완료 후 장바구니 정리
   clearCartAfterOrder() {
     return cartService.clearCart()
+  }
+
+  // 주문 내역 조회 (페이지네이션)
+  async getMyOrders(page = 0, size = 20) {
+    try {
+      console.log(`📄 페이지 ${page} 요청 중...`)
+      const response = await customerApi.getMyOrders(page, size)
+      console.log('📄 응답 데이터:', response)
+      
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error) {
+      console.error('주문 내역 조회 실패:', error)
+      throw error
+    }
+  }
+
+  // 주문 상세 조회
+  async getOrderDetail(orderId) {
+    try {
+      if (!orderId) {
+        throw new Error('주문 ID가 필요합니다.')
+      }
+
+      const order = await customerApi.getOrderDetail(orderId)
+      return {
+        success: true,
+        data: order
+      }
+    } catch (error) {
+      console.error('주문 상세 조회 실패:', error)
+      throw error
+    }
+  }
+
+  // 주문 완료 정보 조회 (OrderComplete.vue에서 사용)
+  async getOrderCompleteInfo(orderNumber, totalAmount, storeName, deliveryAddress, phoneNumber) {
+    try {
+      if (!orderNumber) {
+        throw new Error('주문 번호가 필요합니다.')
+      }
+
+      // 실제로는 서버에서 주문 완료 정보를 조회해야 하지만,
+      // 현재는 전달받은 데이터를 그대로 반환
+      return {
+        success: true,
+        data: {
+          orderNumber,
+          totalAmount: parseInt(totalAmount),
+          storeName,
+          deliveryAddress,
+          phoneNumber,
+          orderTime: new Date().toLocaleString('ko-KR'),
+          estimatedDeliveryTime: '약 30분 후'
+        }
+      }
+    } catch (error) {
+      console.error('주문 완료 정보 조회 실패:', error)
+      throw error
+    }
   }
 }
 

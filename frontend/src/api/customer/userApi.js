@@ -76,6 +76,14 @@ export const userApi = {
       // data: { email, currentPassword, newPassword }
       const response = await api.patch(`/users/me/password`, data)
       console.log('✅ 비밀번호 변경 성공')
+
+      localStorage.removeItem('jwt')
+      localStorage.removeItem('userType')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userEmail')
+
+      
       return response.data
     }),
 
@@ -87,15 +95,18 @@ export const userApi = {
     apiManager.queueRequest(async () => {
       console.log('🔄 로그아웃 중...')
       // TODO: 실제 API 엔드포인트 구현 후 연결
-      // const response = await api.post('/auth/logout')
-      // console.log('✅ 로그아웃 성공')
-      // return response.data
+      const response = await api.post('/auth/logout')
+      console.log('✅ 로그아웃 성공')
       
       // 현재는 프론트엔드에서만 처리
       localStorage.removeItem('jwt')
       localStorage.removeItem('userType')
       localStorage.removeItem('userId')
-      return { success: true, message: '로그아웃되었습니다.' }
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userEmail')
+      //return { success: true, message: '로그아웃되었습니다.' }
+
+      return response.data
     }),
 
   deleteAccount: () =>

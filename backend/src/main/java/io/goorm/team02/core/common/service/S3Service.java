@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
@@ -30,53 +31,69 @@ public class S3Service {
     private String region;
 
     /**
-     * 파일을 S3에 업로드하고 URL 반환 (storeId 폴더 구조)
+     * 트랜잭션 안전한 파일 업로드 (임시 -> 최종 경로)
      */
-    public String uploadFile(MultipartFile file, Long storeId) {
-        // 파일 유효성 검사
+    public String uploadFileWithTransaction(MultipartFile file, Long storeId) {
         validateFile(file);
 
-        // 고유한 파일명 생성
         String fileName = generateFileName(file.getOriginalFilename());
-        // store/{storeId}/filename.jpg 형태로 경로 구성
-        String key = baseFolder + "/" + storeId + "/" + fileName;
+        String tempKey = "temp/" + storeId + "/" + fileName;
 
         try {
-            // S3에 업로드
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
-                    .key(key)
+                    .key(tempKey)
                     .contentType(file.getContentType())
                     .build();
 
             s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            // 업로드된 파일의 URL 생성
-            String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
-            log.info("파일 업로드 성공 - Store ID: {}, URL: {}", storeId, fileUrl);
-
-            return fileUrl;
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, tempKey);
 
         } catch (IOException e) {
-            log.error("파일 업로드 실패 - Store ID: {}, 오류: {}", storeId, e.getMessage());
             throw new RuntimeException("파일 업로드에 실패했습니다", e);
         }
     }
 
     /**
-     * 메뉴 이미지를 S3에 업로드 (store/{storeId}/menu/{fileName} 구조)
+     * 임시 파일을 최종 경로로 이동
      */
-    public String uploadMenuImage(MultipartFile file, Long storeId) {
-        // 파일 유효성 검사
+    public String moveToFinalPath(String tempUrl, Long storeId) {
+        try {
+            String tempKey = extractKeyFromUrl(tempUrl);
+            String fileName = tempKey.substring(tempKey.lastIndexOf("/") + 1);
+            String finalKey = baseFolder + "/" + storeId + "/" + fileName;
+
+            // S3 내에서 복사
+            s3Client.copyObject(
+                    CopyObjectRequest.builder()
+                            .sourceBucket(bucketName)
+                            .sourceKey(tempKey)
+                            .destinationBucket(bucketName)
+                            .destinationKey(finalKey)
+                            .build()
+            );
+
+            // 임시 파일 삭제
+            deleteFileByKey(tempKey);
+
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, finalKey);
+
+        } catch (Exception e) {
+            throw new RuntimeException("파일 이동에 실패했습니다", e);
+        }
+    }
+
+    /**
+     * 기존 파일 업로드 (호환성 유지)
+     */
+    public String uploadFile(MultipartFile file, Long storeId) {
         validateFile(file);
 
-        // 고유한 파일명 생성
         String fileName = generateFileName(file.getOriginalFilename());
-        // store/{storeId}/menu/filename.jpg 형태로 경로 구성
-        String key = baseFolder + "/" + storeId + "/menu/" + fileName;
+        String key = baseFolder + "/" + storeId + "/" + fileName;
 
         try {
-            // S3에 업로드
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
@@ -85,20 +102,40 @@ public class S3Service {
 
             s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-            // 업로드된 파일의 URL 생성
-            String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
-            log.info("메뉴 이미지 업로드 성공 - Store ID: {}, URL: {}", storeId, fileUrl);
-
-            return fileUrl;
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
 
         } catch (IOException e) {
-            log.error("메뉴 이미지 업로드 실패 - Store ID: {}, 오류: {}", storeId, e.getMessage());
+            throw new RuntimeException("파일 업로드에 실패했습니다", e);
+        }
+    }
+
+    /**
+     * 메뉴 이미지 업로드
+     */
+    public String uploadMenuImage(MultipartFile file, Long storeId) {
+        validateFile(file);
+
+        String fileName = generateFileName(file.getOriginalFilename());
+        String key = baseFolder + "/" + storeId + "/menu/" + fileName;
+
+        try {
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .build();
+
+            s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+
+        } catch (IOException e) {
             throw new RuntimeException("메뉴 이미지 업로드에 실패했습니다", e);
         }
     }
 
     /**
-     * S3에서 파일 삭제
+     * 파일 삭제
      */
     public void deleteFile(String fileUrl) {
         if (fileUrl == null || fileUrl.isEmpty()) {
@@ -106,39 +143,23 @@ public class S3Service {
         }
 
         try {
-            // URL에서 S3 key 추출
             String key = extractKeyFromUrl(fileUrl);
-
-            // S3에서 파일 삭제
-            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .build();
-
-            s3Client.deleteObject(deleteRequest);
-            log.info("파일 삭제 성공: {}", key);
-
+            deleteFileByKey(key);
         } catch (Exception e) {
-            log.error("파일 삭제 실패: {}", e.getMessage());
             throw new RuntimeException("파일 삭제에 실패했습니다", e);
         }
     }
 
     /**
-     * 특정 스토어의 모든 이미지 삭제 (선택사항)
+     * Key로 파일 삭제
      */
-    public void deleteStoreFolder(Long storeId) {
-        try {
-            String folderPrefix = baseFolder + "/" + storeId + "/";
+    private void deleteFileByKey(String key) {
+        DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
 
-            // 실제 구현시에는 listObjectsV2로 폴더 내 모든 객체를 조회 후 삭제
-            // 지금은 간단히 폴더 경로만 로깅
-            log.info("스토어 폴더 삭제 요청 - Store ID: {}, Prefix: {}", storeId, folderPrefix);
-
-        } catch (Exception e) {
-            log.error("스토어 폴더 삭제 실패 - Store ID: {}", storeId);
-            throw new RuntimeException("스토어 폴더 삭제에 실패했습니다", e);
-        }
+        s3Client.deleteObject(deleteRequest);
     }
 
     /**
@@ -160,6 +181,12 @@ public class S3Service {
         if (contentType == null || !isImageFile(contentType)) {
             throw new IllegalArgumentException("이미지 파일만 업로드 가능합니다 (JPG, PNG, GIF, WEBP)");
         }
+
+        // 파일 확장자 더블 체크
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null && !isValidImageExtension(originalFilename)) {
+            throw new IllegalArgumentException("허용되지 않는 파일 확장자입니다");
+        }
     }
 
     /**
@@ -171,6 +198,18 @@ public class S3Service {
                 contentType.equals("image/png") ||
                 contentType.equals("image/gif") ||
                 contentType.equals("image/webp");
+    }
+
+    /**
+     * 파일 확장자 검증
+     */
+    private boolean isValidImageExtension(String filename) {
+        String lowerCaseFilename = filename.toLowerCase();
+        return lowerCaseFilename.endsWith(".jpg") ||
+                lowerCaseFilename.endsWith(".jpeg") ||
+                lowerCaseFilename.endsWith(".png") ||
+                lowerCaseFilename.endsWith(".gif") ||
+                lowerCaseFilename.endsWith(".webp");
     }
 
     /**
@@ -198,14 +237,12 @@ public class S3Service {
      */
     private String extractKeyFromUrl(String fileUrl) {
         try {
-
             String pattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
 
             if (fileUrl.startsWith(pattern)) {
                 return fileUrl.substring(pattern.length());
             }
 
-            // 다른 패턴도 처리 (s3.amazonaws.com 형태)
             String alternatePattern = String.format("https://%s.s3.amazonaws.com/", bucketName);
             if (fileUrl.startsWith(alternatePattern)) {
                 return fileUrl.substring(alternatePattern.length());
@@ -214,7 +251,6 @@ public class S3Service {
             throw new IllegalArgumentException("잘못된 S3 URL 형식입니다: " + fileUrl);
 
         } catch (Exception e) {
-            log.error("URL에서 S3 key 추출 실패: {}", e.getMessage());
             throw new RuntimeException("URL 파싱에 실패했습니다", e);
         }
     }

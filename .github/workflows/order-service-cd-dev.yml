@@ -1,0 +1,63 @@
+name: Order Service CD - Deploy
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+    paths:
+      - "msa/order-service/**"
+      - "msa/libs/**"
+      - ".github/workflows/**"
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECS_CLUSTER: team02-cluster
+  SERVICE_NAME: order-service
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update ECS service for ${{ env.SERVICE_NAME }}
+        run: |
+          echo "🔄 Updating ${{ env.SERVICE_NAME }} in ECS..."
+
+          # ECS 서비스 강제 새 배포
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service ${{ env.SERVICE_NAME }} \
+            --force-new-deployment \
+            --region $AWS_REGION
+
+      - name: Wait for ${{ env.SERVICE_NAME }} deployment
+        run: |
+          echo "⏳ Waiting for ${{ env.SERVICE_NAME }} deployment..."
+
+          # 배포 완료 대기
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services ${{ env.SERVICE_NAME }} \
+            --region $AWS_REGION
+
+      - name: Health check for ${{ env.SERVICE_NAME }}
+        run: |
+          echo "✅ Checking ${{ env.SERVICE_NAME }} health..."
+
+          # 서비스 상태 확인
+          aws ecs describe-services \
+            --cluster $ECS_CLUSTER \
+            --services ${{ env.SERVICE_NAME }} \
+            --query 'services[0].{ServiceName:serviceName,Status:status,RunningCount:runningCount,DesiredCount:desiredCount}' \
+            --region $AWS_REGION

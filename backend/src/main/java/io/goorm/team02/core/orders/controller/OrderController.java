@@ -9,6 +9,9 @@ import io.goorm.team02.core.orders.controller.dto.OrderSearchRequest;
 import io.goorm.team02.core.orders.domain.Order;
 import io.goorm.team02.core.orders.service.OrderStatusService;
 import io.goorm.team02.core.orders.service.OrderService;
+import io.goorm.team02.core.auth.annotation.CurrentUser;
+import io.goorm.team02.core.stores.domain.TempUser;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,20 +33,20 @@ public class OrderController implements OrderControllerDocs {
     private final OrderStatusService orderStatusService;
 
     @PostMapping
-    public OrderResponse create(@RequestBody OrderRequest orderRequest) {
-        Order order = orderService.create(orderRequest);
+    public OrderResponse create(@Valid @RequestBody OrderRequest orderRequest, @CurrentUser TempUser user) {
+        Order order = orderService.create(orderRequest, user.getId());
         return OrderResponse.from(order);
     }
 
     @GetMapping
-    public Page<OrderResponse> getAllByParams(OrderSearchRequest searchRequest) {
-        Page<Order> orders = orderService.getAllByParams(searchRequest);
+    public Page<OrderResponse> getAllByParams(OrderSearchRequest searchRequest, @CurrentUser TempUser user) {
+        Page<Order> orders = orderService.getAllByParams(searchRequest, user.getId());
         return orders.map(OrderResponse::from);
     }
 
     @GetMapping("/{orderId}")
-    public OrderResponse getOrderDetail(@PathVariable Long orderId) {
-        Order order = orderService.getOrderDetail(orderId);
+    public OrderResponse getOrderDetail(@PathVariable Long orderId, @CurrentUser TempUser user) {
+        Order order = orderService.getOrderDetail(orderId, user.getId());
         return OrderResponse.from(order);
     }
 

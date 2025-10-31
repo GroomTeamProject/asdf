@@ -9,13 +9,11 @@ class SSEManager {
   constructor() {
     this.eventSource = null
     this.isConnected = false
-    this.reconnectAttempts = 0
-    this.maxReconnectAttempts = 5
-    this.reconnectInterval = 3000
+    this.heartbeatTimeout = 300000 // ms
     this.userId = null
     this.userType = null
     this.listeners = new Map()
-  } 
+  }
 
   /**
    * SSE 연결 시작
@@ -24,7 +22,6 @@ class SSEManager {
    */
   connect(userId, userType = 'CUSTOMER') {
     if (this.isConnected && this.userId === userId) {
-      console.log('SSE가 이미 연결되어 있습니다.', userId)
       return
     }
 
@@ -35,17 +32,19 @@ class SSEManager {
     try {
       const baseURL = import.meta.env.VITE_API_URL
       const token = localStorage.getItem('jwt')
-      const url = `${baseURL}/sse/connect/${userId}`
+      const url = `${baseURL}/sse/connect?userId=${userId}`
       console.log('🔄 SSE 연결 시도:', url)
- 
+
       this.eventSource = new EventSourcePolyfill(url, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
+        heartbeatTimeout: this.heartbeatTimeout,
       })
       this.setupBasicEventListeners()
     } catch (error) {
-      console.error('SSE 연결 실패:', error)
+      console.error('❌ SSE 연결 오류 발생!')
+      this.isConnected = false
       this.handleConnectionError()
     }
   }
@@ -56,22 +55,9 @@ class SSEManager {
   setupBasicEventListeners() {
     if (!this.eventSource) return
 
-    // 연결 성공
     this.eventSource.onopen = () => {
       console.log('✅ SSE 연결 성공!')
-      console.log('👤 사용자 ID:', this.userId)
-      console.log('🔗 연결 URL:', this.eventSource.url)
       this.isConnected = true
-      this.reconnectAttempts = 0
-    }
-
-    // 연결 오류
-    this.eventSource.onerror = (error) => {
-      console.error('❌ SSE 연결 오류 발생!')
-      console.error('🔍 오류 상세:', error)
-      console.error('🔄 재연결 시도 횟수:', this.reconnectAttempts)
-      this.isConnected = false
-      this.handleConnectionError()
     }
   }
 
@@ -122,29 +108,10 @@ class SSEManager {
   }
 
   /**
-   * 연결 오류 처리 및 재연결 시도
+   * 연결 오류 처리
    */
   handleConnectionError() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('🚫 SSE 최대 재연결 시도 횟수 초과!')
-      console.error('📊 총 시도 횟수:', this.maxReconnectAttempts)
-      console.error('👤 사용자 ID:', this.userId)
-      console.error('⏰ 마지막 시도 시간:', new Date().toLocaleString())
-      return
-    }
-
-    this.reconnectAttempts++
-    console.log(`🔄 SSE 재연결 시도 ${this.reconnectAttempts}/${this.maxReconnectAttempts}`)
-    console.log(`⏰ ${this.reconnectInterval / 1000}초 후 재연결 시도...`)
-
-    setTimeout(() => {
-      if (this.userId) {
-        console.log(`🔄 재연결 시작 (시도 ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
-        this.connect(this.userId, this.userType)
-      } else {
-        console.warn('⚠️ 사용자 ID가 없어 재연결을 시도하지 않습니다.')
-      }
-    }, this.reconnectInterval)
+    this.isConnected = false
   }
 
   /**
@@ -152,17 +119,12 @@ class SSEManager {
    */
   disconnect() {
     if (this.eventSource) {
-      console.log('🔌 SSE 연결 해제 중...')
-      console.log('📡 해제할 URL:', this.eventSource.url)
-      console.log('👤 사용자 ID:', this.userId)
-
       this.removeAllEventListeners()
       this.eventSource.close()
       this.eventSource = null
 
       console.log('✅ SSE 연결 해제 완료')
     } else {
-      console.log('ℹ️ SSE 연결이 이미 해제되어 있습니다.')
     }
     this.isConnected = false
   }

@@ -362,7 +362,6 @@ class OrderTest extends TestEnv {
                 .hasMessageContaining("가게 정보가 필요합니다");
     }
 
-
     @Test
     @DisplayName("create - 팩토리 메서드로 Order 생성")
     void createOrder() {
@@ -413,5 +412,162 @@ class OrderTest extends TestEnv {
 
         // then
         assertThat(createdOrder.getDiscountAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("changeStatus - 상태 변경 및 타임스탬프 업데이트")
+    void changeStatus() {
+        // given
+        order.setStatus(OrderStatus.PENDING);
+
+        // when
+        order.changeStatus(OrderStatus.ACCEPTED);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        assertThat(order.getAcceptedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("changeStatus - ACCEPTED 상태로 변경 시 타임스탬프 업데이트")
+    void changeStatusToAccepted_UpdatesTimestamp() {
+        // given
+        order.setStatus(OrderStatus.PENDING);
+
+        // when
+        order.changeStatus(OrderStatus.ACCEPTED);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.ACCEPTED);
+        assertThat(order.getAcceptedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("changeStatus - COOKING 상태로 변경 시 타임스탬프 업데이트")
+    void changeStatusToCooking_UpdatesTimestamp() {
+        // given
+        order.setStatus(OrderStatus.ACCEPTED);
+
+        // when
+        order.changeStatus(OrderStatus.COOKING);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.COOKING);
+        assertThat(order.getCookingStartedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("changeStatus - READY 상태로 변경 시 타임스탬프 업데이트")
+    void changeStatusToReady_UpdatesTimestamp() {
+        // given
+        order.setStatus(OrderStatus.COOKING);
+
+        // when
+        order.changeStatus(OrderStatus.READY);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.READY);
+        assertThat(order.getCookingCompletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("changeStatus - PICKED_UP 상태로 변경 시 타임스탬프 업데이트")
+    void changeStatusToPickedUp_UpdatesTimestamp() {
+        // given
+        order.setStatus(OrderStatus.READY);
+
+        // when
+        order.changeStatus(OrderStatus.PICKED_UP);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PICKED_UP);
+        assertThat(order.getPickedUpAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("changeStatus - DELIVERED 상태로 변경 시 타임스탬프 업데이트")
+    void changeStatusToDelivered_UpdatesTimestamp() {
+        // given
+        order.setStatus(OrderStatus.PICKED_UP);
+
+        // when
+        order.changeStatus(OrderStatus.DELIVERED);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.DELIVERED);
+        assertThat(order.getDeliveredAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("changeStatus - CANCELLED 상태로 변경 시 타임스탬프 업데이트")
+    void changeStatusToCancelled_UpdatesTimestamp() {
+        // given
+        order.setStatus(OrderStatus.PENDING);
+
+        // when
+        order.changeStatus(OrderStatus.CANCELLED);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(order.getCancelledAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("changeStatus - REJECTED 상태로 변경 시 타임스탬프 업데이트")
+    void changeStatusToRejected_UpdatesTimestamp() {
+        // given
+        order.setStatus(OrderStatus.PENDING);
+
+        // when
+        order.changeStatus(OrderStatus.REJECTED);
+
+        // then
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.REJECTED);
+        assertThat(order.getRejectedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("calculateMenuTotalAmount - 빈 주문 아이템 리스트")
+    void calculateMenuTotalAmountWithEmptyList() {
+        // given
+        order.setOrderItems(new ArrayList<>());
+
+        // when
+        order.calculateTotalAmount();
+
+        // then
+        assertThat(order.getMenuTotalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order.getTotalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("calculateMenuTotalAmount - null 주문 아이템 리스트")
+    void calculateMenuTotalAmountWithNullList() {
+        // given
+        order.setOrderItems(null);
+
+        // when
+        order.calculateTotalAmount();
+
+        // then
+        assertThat(order.getMenuTotalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order.getTotalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("calculateMenuTotalAmount - null totalPrice를 가진 주문 아이템")
+    void calculateMenuTotalAmountWithNullTotalPrice() {
+        // given
+        List<OrderItem> testOrderItems = new ArrayList<>();
+        OrderItem orderItem = new OrderItem();
+        orderItem.setTotalPrice(null);
+        testOrderItems.add(orderItem);
+        order.setOrderItems(testOrderItems);
+
+        // when
+        order.calculateTotalAmount();
+
+        // then
+        assertThat(order.getMenuTotalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 }

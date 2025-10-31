@@ -12,45 +12,46 @@ const orderItems = ref([]);
 const orderId = ref(null);
 
 onMounted(async () => {
-    const orderInfo = JSON.parse(localStorage.getItem("orderInfo") || "{}");
-    orderItems.value = orderInfo.items || [];
+  const orderInfo = JSON.parse(localStorage.getItem("orderInfo") || "{}");
+  orderItems.value = orderInfo.items || [];
 
-    const paymentKey = route.query.paymentKey;
-    const orderIdParam = route.query.orderId;
-    amount.value = parseInt(route.query.amount || "0", 10);
+  const paymentKey = route.query.paymentKey;
+  const orderIdParam = route.query.orderId;
+  amount.value = parseInt(route.query.amount || "0", 10);
 
-    if (!paymentKey) {
-        message.value = "결제 키가 존재하지 않습니다. 다시 시도해주세요.";
-        return;
-    }
+  if (!paymentKey) {
+    message.value = "결제 키가 존재하지 않습니다. 다시 시도해주세요.";
+    return;
+  }
 
-    try {
-        await axios.post(`${import.meta.env.VITE_API_URL}/payments/callback`, {
-            userId: localStorage.getItem("userId"),
-            paymentKey: paymentKey,
-            amount: amount.value,
-            pgProvider: "tosspay",
-            paymentMethod: "CARD",
-            pgTid: null
-        }, {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("jwt")}`
-            }
-        });
+  try {
+    const jwt = localStorage.getItem("jwt");
+    if (!jwt) throw new Error("로그인 토큰 없음");
 
-    } catch (err) {
-        console.warn("Toss API 호출 실패:", err.message);
-    } finally {
-        orderId.value = orderIdParam || null;
-        ["cart", "orderInfo"].forEach(key => localStorage.removeItem(key));
+    await axios.post(`${import.meta.env.VITE_API_URL}/payments/callback`, {
+      paymentKey: paymentKey,
+      amount: amount.value,
+      orderId: orderIdParam,
+    }, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`
+      }
+    });
 
-        message.value =
-            "주문과 결제가 완료되었습니다! 5초 후 고객 페이지로 이동합니다.";
-        setTimeout(() => router.push("/customer"), 5000);
-    }
+  } catch (err) {
+    console.warn("Toss API 호출 실패:", err.message);
+  } finally {
+    orderId.value = orderIdParam || null;
+    ["cart", "orderInfo"].forEach(key => localStorage.removeItem(key));
+
+    message.value =
+        "주문과 결제가 완료되었습니다! 5초 후 고객 페이지로 이동합니다.";
+    setTimeout(() => router.push("/customer"), 5000);
+  }
 });
 </script>
+
 
 <template>
   <div class="payment-success p-6 text-center">

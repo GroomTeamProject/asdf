@@ -181,7 +181,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { userApi } from '@/api/customer/userApi'
+import { customerService } from '@/services/customer/customerService'
 
 export default {
   name: 'MyPage',
@@ -220,7 +220,7 @@ export default {
     const handleLogout = async () => {
       if (confirm('정말로 로그아웃하시겠습니까?')) {
         try {
-          await userApi.logout()
+          await customerService.logout()
           router.push('/login')
         } catch (error) {
           console.error('로그아웃 실패:', error)
@@ -228,6 +228,8 @@ export default {
           localStorage.removeItem('jwt')
           localStorage.removeItem('userType')
           localStorage.removeItem('userId')
+          localStorage.removeItem('userEmail')
+          localStorage.removeItem('userName')
           router.push('/login')
         }
       }
@@ -236,7 +238,7 @@ export default {
     const handleDeleteAccount = async () => {
       if (confirm('정말로 계정을 탈퇴하시겠습니까? 삭제된 계정은 복구할 수 없습니다.')) {
         try {
-          await userApi.deleteAccount()  // 서버 API 호출
+          await customerService.deleteAccount()
           alert('계정이 삭제되었습니다.')
           localStorage.clear()
           router.push('/')
@@ -253,17 +255,12 @@ export default {
         const userId = localStorage.getItem('userId')
         
         if (userId) {
-          const profile = await userApi.getUserProfile(userId)
-          userProfile.value = profile
+          const result = await customerService.getUserProfile(userId)
+          userProfile.value = result.data
         }
       } catch (error) {
         console.error('사용자 데이터 조회 실패:', error)
-        // 에러 발생 시 기본값 설정
-        userProfile.value = {
-          name: '사용자님',
-          email: 'user@example.com',
-          phone: '010-1234-5678'
-        }
+        throw error
       } finally {
         loading.value = false
       }

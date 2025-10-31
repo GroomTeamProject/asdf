@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../pages/payment/Home.vue'
 import Signup from '../pages/auth/Signup.vue'
 import Login from '../pages/auth/Login.vue'
+import Main from '../pages/auth/Main.vue'
 import StoreRegistration from '../pages/owner/StoreRegistration.vue'
 
 // 권한별 메인 페이지
@@ -20,14 +21,21 @@ import SuccessPage from '../pages/payment/SuccessPage.vue'
 import FailPage from '../pages/payment/FailPage.vue'
 import OrderStatus from '../pages/payment/OrderStatus.vue'
 
+import StoreList from '../pages/customer/StoreList.vue'
+import StoreCard from '../components/customer/storeList/StoreCard.vue'
+
 const routes = [
   {
     path: '/',
+    redirect: '/main-page',
     component: DefaultLayout,
     children: [
-      { path: '', component: Home },
+      //{ path: '', component: Home },
       { path: '/signup', component: Signup },
       { path: '/login', component: Login },
+      { path: '/main-page', component: Main },
+      { path: '/store-card', component: StoreCard },
+      { path: '/store-list', component: StoreList },
       { path: '/customer-main', component: CustomerMain, meta: { role: 'CUSTOMER' } },
       { path: '/owner-main', component: OwnerMain, meta: { role: 'OWNER' } },
       { path: '/store-registration', component: StoreRegistration, meta: { role: 'OWNER' } },
@@ -57,14 +65,27 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('jwt')
   const userType = localStorage.getItem('userType')
 
+  /*// 로그인 필요 없는 페이지 : 초기화면 유저 화면으로 바꿀시
+  if (['/','/main-page', '/login', '/signup','/customer-main','/store-card','/store-list'].includes(to.path)
+  || to.path.startsWith('/customer/stores')) {
+    return next()
+  }*/
+
   // 로그인 필요 없는 페이지
-  if (['/', '/login', '/signup'].includes(to.path)) {
+  if (['/', '/login', '/signup','/main-page'].includes(to.path)) {
     return next()
   }
 
   // 로그인 안 돼 있으면 로그인 페이지로
   if (!token) {
-    return next('/login')
+    const answer = confirm('로그인이 필요한 페이지 입니다!\n로그인 하시겠습니까?')
+    if (answer) {
+      // 확인 → 로그인 페이지로 이동
+      return next('/login')
+    } else {
+      // 취소 → 원래 가려던 페이지 머무르기
+      return next(false)
+    }
   }
 
   // 라우트 메타에 role이 있으면 체크

@@ -107,19 +107,22 @@ export function useCustomerSSE() {
     notifications.value = []
   }
 
-  // 컴포넌트 마운트 시 SSE 연결
+  // 컴포넌트 마운트 시 SSE 연결 (이미 연결되어 있으면 스킵)
   onMounted(() => {
     // 사용자 ID가 있으면 자동 연결
     const userId = localStorage.getItem('userId')
-    if (userId) {
+    if (userId && !sseManager.getConnectionStatus()) {
       connectSSE(userId)
+    } else if (userId && sseManager.getConnectionStatus()) {
+      // 이미 연결되어 있으면 상태만 업데이트
+      isConnected.value = true
     }
   })
 
-  // 컴포넌트 언마운트 시 SSE 연결 해제
+  // 컴포넌트 언마운트 시에는 연결을 해제하지 않음 (전역 연결 유지)
   onUnmounted(() => {
-    sseManager.disconnect()
-    isConnected.value = false
+    // SSE 연결은 유지하고 상태만 업데이트
+    isConnected.value = sseManager.getConnectionStatus()
   })
 
   return {

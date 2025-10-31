@@ -26,7 +26,7 @@ import CustomerContainer from '@/components/customer/CustomerContainer.vue'
 import MenuInfo from '@/components/customer/menuDetail/MenuInfo.vue'
 import MenuOptions from '@/components/customer/menuDetail/MenuOptions.vue'
 import QuantitySelector from '@/components/customer/menuDetail/QuantitySelector.vue'
-import { customerApi } from '@/api/customer/customerApi'
+import { menuService } from '@/services/customer/menuService'
 import { cartService } from '@/services/customer/cartService'
 import router from '@/router'
 
@@ -49,10 +49,10 @@ export default {
     const storeInfo = ref({})
 
     const loadMenuData = async (storeId, id) => {
-      const menuData = await customerApi.getMenuById(storeId, id)
-      if (menuData) {
-        menuItem.value = menuData
-      } else {
+      try {
+        const result = await menuService.getMenuById(storeId, id)
+        menuItem.value = result.data
+      } catch (error) {
         console.error('메뉴 정보를 찾을 수 없습니다:', storeId, id)
         router.push('/customer/stores')
       }
@@ -99,6 +99,9 @@ export default {
     }
 
     const handleOptionsChanged = (newOptions) => {
+      console.log('옵션 변경됨:', newOptions)
+      console.log('옵션 키들:', Object.keys(newOptions))
+      console.log('옵션 값들:', Object.values(newOptions))
       selectedOptions.value = newOptions
     }
 
@@ -115,31 +118,18 @@ export default {
       }
       
       // 가게 정보도 로드
-      console.log('=== 가게 정보 로드 디버깅 ===')
-      console.log('1. menuItem.value.store:', menuItem.value.store)
-      console.log('2. route.params:', route.params)
-      console.log('3. menuItem.value.storeId:', menuItem.value.storeId)
-      
       if (menuItem.value.store && menuItem.value.store.id) {
-        console.log('4. 메뉴에 포함된 가게 정보 사용')
         storeInfo.value = menuItem.value.store
       } else {
         // 메뉴에 가게 정보가 없으면 URL에서 storeId를 가져와서 조회
         // 라우터에서 :id가 storeId가 됨
         const storeId = route.params.id || menuItem.value.storeId
-        console.log('5. URL에서 가져온 storeId (route.params.id):', storeId)
         
         if (storeId) {
-          console.log('6. 가게 정보 API 호출 중...')
-          const storeData = await customerApi.getStoreById(storeId)
-          console.log('7. API에서 받은 가게 정보:', storeData)
-          storeInfo.value = storeData
-        } else {
-          console.log('8. storeId가 없어서 가게 정보를 로드할 수 없음')
+          const result = await menuService.getStoreById(storeId)
+          storeInfo.value = result.data
         }
       }
-      
-      console.log('9. 최종 storeInfo.value:', storeInfo.value)
       
     })
 

@@ -11,10 +11,6 @@ import jakarta.validation.constraints.Size;
  */
 @Schema(description = "리뷰 생성 요청")
 public record ReviewRequest(
-    @Schema(description = "사용자 ID", example = "1")
-    @NotNull(message = "사용자 ID는 필수입니다")
-    Long userId,
-
     @Schema(description = "주문 ID", example = "1")
     @NotNull(message = "주문 ID는 필수입니다")
     Long orderId,

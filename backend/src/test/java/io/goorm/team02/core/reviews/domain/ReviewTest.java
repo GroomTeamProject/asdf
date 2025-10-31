@@ -169,4 +169,139 @@ class ReviewTest extends TestEnv {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("평점은 1~5 사이여야 합니다");
     }
+
+    @Test
+    @DisplayName("create - null 평점으로 생성 시 예외 발생")
+    void createWithNullRating() {
+        // when & then
+        assertThatThrownBy(() -> Review.create(order, user, store, null, "내용"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("create - 0점으로 생성 시 예외 발생")
+    void createWithZeroRating() {
+        // when & then
+        assertThatThrownBy(() -> Review.create(order, user, store, 0, "내용"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("create - 음수 평점으로 생성 시 예외 발생")
+    void createWithNegativeRating() {
+        // when & then
+        assertThatThrownBy(() -> Review.create(order, user, store, -1, "내용"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("validate - 평점이 null인 경우 예외 발생")
+    void validateWithNullRating() {
+        // given
+        review.setRating(null);
+
+        // when & then
+        assertThatThrownBy(() -> review.validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("validate - 평점이 0인 경우 예외 발생")
+    void validateWithZeroRating() {
+        // given
+        review.setRating(0);
+
+        // when & then
+        assertThatThrownBy(() -> review.validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("validate - 평점이 음수인 경우 예외 발생")
+    void validateWithNegativeRating() {
+        // given
+        review.setRating(-1);
+
+        // when & then
+        assertThatThrownBy(() -> review.validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("addOwnerReply - null 답글일 때 예외 발생")
+    void addOwnerReplyWithNullReply() {
+        // when & then
+        assertThatThrownBy(() -> review.addOwnerReply(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("답글 내용이 필요합니다");
+    }
+
+    @Test
+    @DisplayName("addOwnerReply - 공백만 있는 답글일 때 예외 발생")
+    void addOwnerReplyWithBlankReply() {
+        // when & then
+        assertThatThrownBy(() -> review.addOwnerReply("   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("답글 내용이 필요합니다");
+    }
+
+    @Test
+    @DisplayName("update - null 평점으로 수정 시 예외 발생")
+    void updateWithNullRating() {
+        // when & then
+        assertThatThrownBy(() -> review.update(null, "내용"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("update - 음수 평점으로 수정 시 예외 발생")
+    void updateWithNegativeRating() {
+        // when & then
+        assertThatThrownBy(() -> review.update(-1, "내용"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("update - 6점으로 수정 시 예외 발생")
+    void updateWithRatingSix() {
+        // when & then
+        assertThatThrownBy(() -> review.update(6, "내용"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("평점은 1~5 사이여야 합니다");
+    }
+
+    @Test
+    @DisplayName("update - null 내용으로 수정")
+    void updateWithNullContent() {
+        // given
+        Integer newRating = 4;
+
+        // when
+        review.update(newRating, null);
+
+        // then
+        assertThat(review.getRating()).isEqualTo(newRating);
+        assertThat(review.getContent()).isNull();
+    }
+
+    @Test
+    @DisplayName("report - 이미 신고된 리뷰를 다시 신고")
+    void reportAlreadyReportedReview() {
+        // given
+        review.setIsReported(true);
+
+        // when
+        review.report();
+
+        // then
+        assertThat(review.getIsReported()).isTrue();
+    }
 }

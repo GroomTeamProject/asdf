@@ -4,9 +4,13 @@ import io.goorm.team02.core.orders.domain.Order;
 import io.goorm.team02.core.orders.domain.enums.OrderStatus;
 import io.goorm.team02.core.orders.repository.OrderRepository;
 import io.goorm.team02.core.payments.domain.Payment;
-import io.goorm.team02.core.payments.dto.PaymentRequest;
+import io.goorm.team02.core.payments.dto.PaymentConfirmRequest;
+import io.goorm.team02.core.payments.dto.PaymentResponse;
 import io.goorm.team02.core.payments.service.PaymentService;
 
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,40 +20,37 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final OrderRepository orderRepository;
 
-    public PaymentController(PaymentService paymentService, OrderRepository orderRepository) {
+    public PaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
-        this.orderRepository = orderRepository;
     }
 
     @PostMapping("/callback")
-    @Transactional
-    public ResponseEntity<?> completePayment(@RequestBody PaymentRequest request) {
-        System.out.println("request: " + request);
+    public ResponseEntity<?> confirmPayment(@RequestBody PaymentConfirmRequest request) {
+        System.out.println("==== 결제 콜백 요청 데이터 확인 ====");
+        System.out.println("paymentKey: " + request.getPaymentKey());
+        System.out.println("orderId: " + request.getOrderId());
+        System.out.println("amount: " + request.getAmount());
+        System.out.println("=================================");
 
-        // Request 검증
-        if (request == null || request.getPaymentKey() == null || request.getAmount() == null) {
-            return ResponseEntity.badRequest().body("결제 키 또는 금액이 없습니다.");
+        try {
+            PaymentResponse response = paymentService.confirmPayment(request);
+
+            System.out.println("==== Toss API 응답 데이터 확인 ====");
+            System.out.println(response);
+            System.out.println("=================================");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.out.println("==== 결제 승인 실패 ====");
+            e.printStackTrace();
+            System.out.println("=======================");
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "error", "결제 승인 실패",
+                            "detail", e.getMessage()
+                    ));
         }
-
-        // 최근 주문 조회
-        Order order = orderRepository.findTopByUserIdOrderByOrderedAtDesc(request.getUserId())
-                .orElse(null);
-
-        if (order == null) {
-            return ResponseEntity.badRequest().body("최근 주문이 없습니다.");
-        }
-
-        // 결제 처리
-        Payment payment = paymentService.completePayment(
-                order,
-                request.getPaymentKey(),
-                request.getPgProvider(),
-                request.getPgTid(),
-                request.getAmount());
-
-        return ResponseEntity.ok(payment);
     }
-
 }

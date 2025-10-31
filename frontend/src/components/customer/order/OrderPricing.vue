@@ -42,7 +42,9 @@ export default {
 
     // 배달비 계산
     const deliveryFee = computed(() => {
-      const storeInfo = cartStore.items[0].storeInfo
+      if (cartStore.items.length === 0) return 0
+      
+      const storeInfo = cartStore.items[0]?.storeInfo
       const storeDeliveryFee = storeInfo?.deliveryFee || 0
       
       return storeDeliveryFee

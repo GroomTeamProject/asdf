@@ -52,10 +52,10 @@ public class OrderService {
     // Business Logic
     // ================================
     @Transactional
-    public Order create(OrderRequest orderRequest) {
+    public Order create(OrderRequest orderRequest, Long userId) {
         // 1. 엔티티 참조 조회 & 검증
         // TODO: MSA 전환 시 의존성 제거 필요
-        User user = getUserById(orderRequest.userId());
+        User user = getUserById(userId);
         Store store = getStoreById(orderRequest.storeId());
 
         // 2. 메뉴 정보 조회 (주문 시점에서의 메뉴 정보 스냅샷)
@@ -88,7 +88,7 @@ public class OrderService {
     /**
      * 주문 목록 조회 (페이지네이션 지원)
      */
-    public Page<Order> getAllByParams(OrderSearchRequest searchRequest) {
+    public Page<Order> getAllByParams(OrderSearchRequest searchRequest, Long userId) {
         Page<Order> orders;
         Pageable pageable = PageRequest.of(searchRequest.getPageOrDefault(), searchRequest.getSizeOrDefault());
 
@@ -96,7 +96,7 @@ public class OrderService {
         if (searchRequest.hasStoreId()) {
             orders = orderRepository.findAllByStoreIdWithPagination(searchRequest.getStoreId(), pageable);
         } else if (searchRequest.hasUserId()) {
-            orders = orderRepository.findAllByUserIdWithPagination(searchRequest.getUserId(), pageable);
+            orders = orderRepository.findAllByUserIdWithPagination(userId, pageable);
         } else {
             // 모든 주문 조회
             orders = orderRepository.findAllWithPagination(pageable);
@@ -113,10 +113,15 @@ public class OrderService {
     }
 
     /**
-     * 주문 상세 조회
+     * 주문 상세 조회 (권한 검증 포함)
      */
-    public Order getOrderDetail(Long orderId) {
+    public Order getOrderDetail(Long orderId, Long userId) {
         Order order = getOrderById(orderId);
+        
+        // 권한 검증: 주문 소유자만 조회 가능
+        if (!order.getUser().getId().equals(userId)) {
+            throw new IllegalStateException("본인의 주문만 조회할 수 있습니다.");
+        }
 
         order.getOrderItems().forEach(orderItem -> {
             orderItem.getOptions().size(); // 지연 로딩 트리거

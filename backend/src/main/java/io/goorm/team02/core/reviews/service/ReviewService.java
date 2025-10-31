@@ -40,12 +40,12 @@ public class ReviewService {
      * 리뷰 생성
      */
     @Transactional
-    public Review create(ReviewRequest reviewRequest) {
+    public Review create(ReviewRequest reviewRequest, Long userId) {
         // 1. 조회 & 검증
-        User user = getUserById(reviewRequest.userId());
+        User user = getUserById(userId);
         Order order = getOrderById(reviewRequest.orderId());
 
-        if (!order.getUser().getId().equals(reviewRequest.userId())) {
+        if (!order.getUser().getId().equals(userId)) {
             throw new IllegalStateException("본인의 주문에만 리뷰를 작성할 수 있습니다");
         }
         if (reviewRepository.findByOrderId(reviewRequest.orderId()).isPresent()) {
@@ -63,10 +63,17 @@ public class ReviewService {
     }
 
     /**
-     * 리뷰 상세 조회
+     * 리뷰 상세 조회 (권한 검증 포함)
      */
-    public Review getById(Long reviewId) {
-        return getReviewById(reviewId);
+    public Review getById(Long reviewId, Long userId) {
+        Review review = getReviewById(reviewId);
+        
+        // 권한 검증: 리뷰 작성자만 조회 가능
+        if (!review.getUser().getId().equals(userId)) {
+            throw new IllegalStateException("본인이 작성한 리뷰만 조회할 수 있습니다.");
+        }
+        
+        return review;
     }
 
     /**
@@ -84,11 +91,16 @@ public class ReviewService {
     }
 
     /**
-     * 리뷰 수정
+     * 리뷰 수정 (권한 검증 포함)
      */
     @Transactional
-    public Review update(Long reviewId, ReviewRequest reviewRequest) {
+    public Review update(Long reviewId, ReviewRequest reviewRequest, Long userId) {
         Review review = getReviewById(reviewId);
+        
+        // 권한 검증: 리뷰 작성자만 수정 가능
+        if (!review.getUser().getId().equals(userId)) {
+            throw new IllegalStateException("본인이 작성한 리뷰만 수정할 수 있습니다.");
+        }
 
         review.update(reviewRequest.rating(), reviewRequest.content());
 
@@ -96,11 +108,16 @@ public class ReviewService {
     }
 
     /**
-     * 리뷰 삭제
+     * 리뷰 삭제 (권한 검증 포함)
      */
     @Transactional
-    public void delete(Long reviewId) {
+    public void delete(Long reviewId, Long userId) {
         Review review = getReviewById(reviewId);
+        
+        // 권한 검증: 리뷰 작성자만 삭제 가능
+        if (!review.getUser().getId().equals(userId)) {
+            throw new IllegalStateException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
+        }
 
         reviewRepository.delete(review);
     }

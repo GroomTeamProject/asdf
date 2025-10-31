@@ -13,6 +13,7 @@ import AddressManagement from '../pages/customer/AddressManagement.vue'
 import WriteReview from '../pages/customer/WriteReview.vue'
 import ReviewList from '../pages/customer/ReviewList.vue'
 import ChangePassword from '../pages/customer/ChangePassword.vue'
+import Notifications from '../pages/customer/Notifications.vue'
 
 // 레이아웃 컴포넌트
 import CustomerLayout from '../layouts/customer/CustomerLayout.vue'
@@ -41,6 +42,7 @@ export const customerRoutes = [
       { path: 'write-review/:orderId', component: WriteReview, name: 'WriteReview' },
       { path: 'my-reviews', component: ReviewList, name: 'MyReviews' },
       { path: 'change-password', name: 'ChangePassword', component: ChangePassword },
+      { path: 'notifications', component: Notifications },
     ],
   },
 ]

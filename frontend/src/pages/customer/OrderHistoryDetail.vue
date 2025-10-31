@@ -183,7 +183,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { customerApi } from '@/api/customer/customerApi.js'
+import { orderService } from '@/services/customer/orderService.js'
 import OrderStatusBadge from '@/components/customer/order/OrderStatusBadge.vue'
 import OrderCancelButton from '@/components/customer/order/OrderCancelButton.vue'
 
@@ -204,11 +204,11 @@ export default {
       try {
         loading.value = true
         const orderId = route.params.orderId
-        const response = await customerApi.getOrderDetail(orderId)
-        order.value = response
+        const result = await orderService.getOrderDetail(orderId)
+        order.value = result.data
       } catch (error) {
         console.error('주문 상세 조회 실패:', error)
-        order.value = null
+        throw error
       } finally {
         loading.value = false
       }

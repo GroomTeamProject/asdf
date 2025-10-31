@@ -1,0 +1,23 @@
+# Git 관련
+.git
+.gitignore
+
+# IDE 관련
+.idea
+.vscode
+*.iml
+
+# 빌드 결과물 (JAR 파일은 Dockerfile에서 사용하므로 제외하지 않음)
+build/reports
+build/test-results
+
+# 로그
+*.log
+
+# OS 관련
+.DS_Store
+Thumbs.db
+
+# 임시
+*.tmp
+*.temp

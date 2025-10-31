@@ -25,7 +25,7 @@ import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/customer/order'
 import { useCartStore } from '@/stores/customer/cart'
-import { userApi } from '@/api/customer/userApi'
+import { customerService } from '@/services/customer/customerService'
 import DeliveryInfo from '@/components/customer/order/DeliveryInfo.vue'
 import OrderSummary from '@/components/customer/order/OrderSummary.vue'
 import OrderPricing from '@/components/customer/order/OrderPricing.vue'
@@ -53,14 +53,9 @@ export default {
       try {
         const userId = localStorage.getItem('userId')
         if (userId) {
-          // 사용자 정보와 배송지 정보를 병렬로 불러오기
-          const [userProfile, addresses] = await Promise.all([
-            userApi.getUserProfile(userId),
-            userApi.getUserAddresses(userId)
-          ])
-          
-          const defaultAddress = addresses?.find(addr => addr.isDefault)
-          const userPhone = userProfile?.phone || ''
+          // Service를 통해 사용자 정보와 배송지 정보 조회
+          const result = await customerService.getDefaultAddressAndUserInfo(userId)
+          const { userProfile, addresses, defaultAddress, userPhone } = result.data
           
           if (defaultAddress) {
             // 기본 배송지가 있으면 자동으로 설정
@@ -76,8 +71,7 @@ export default {
         }
       } catch (error) {
         console.error('사용자 정보 및 기본 배송지 불러오기 실패:', error)
-        // 에러가 발생해도 빈 상태로 유지
-        orderStore.initializeDeliveryInfo('', '', '')
+        throw error
       }
     }
 

@@ -1,0 +1,46 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: team02payment
+
+  kafka:
+    # 반드시 실제 브로커 주소로 변경 (예: localhost:9092 or kafka-broker:9092)
+    bootstrap-servers: localhost:9092
+
+    consumer:
+      group-id: team02-backend-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 토픽이 없어도 앱이 죽지 않도록 (로컬 테스트용)
+      listener:
+        missing-topics-fatal: false
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 권장 안정성 설정 (프로덕션에 맞게 튜닝)
+      acks: all
+      retries: 3
+      max-block-ms: 10000
+
+feign:
+  client:
+    config:
+      default:
+        # 단위: 밀리초 (예: 5000 -> 5초)
+        connect-timeout: 5000
+        read-timeout: 10000
+
+# (옵션) 로컬/테스트용 설정을 한 파일에 두고 싶다면 프로파일 블록을 추가할 수 있음.
+# 예:
+# ---
+# spring:
+#   profiles: local
+#   datasource:
+#     url: jdbc:h2:mem:paymentdb;DB_CLOSE_DELAY=-1
+#     driver-class-name: org.h2.Driver
+#     username: sa
+#     password:

@@ -5,6 +5,8 @@ import io.goorm.team02.core.users.domain.User;
 import io.goorm.team02.core.users.domain.enums.UserType;
 import io.goorm.team02.core.auth.controller.dto.SignupRequest;
 import io.goorm.team02.core.auth.controller.dto.SignupResponse;
+import io.goorm.team02.core.auth.service.RefreshTokenService;
+import io.goorm.team02.core.common.exception.dto.client.ConflictException;
 import io.goorm.team02.core.users.repository.UserinfoRepository;
 import io.goorm.team02.core.users.domain.UserAddress;
 import io.goorm.team02.core.users.repository.UserAddressRepository;
@@ -13,9 +15,12 @@ import io.goorm.team02.core.users.controller.dto.UserAddressRequest;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +30,7 @@ public class UserService {
     private final UserinfoRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserAddressRepository userAddressRepository;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * 사용자 ID로 사용자 정보 조회
@@ -238,6 +244,7 @@ public class UserService {
         // 새 비밀번호 인코딩 후 저장
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        refreshTokenService.deleteByUser(user);
     }
 
 
@@ -262,7 +269,8 @@ public class UserService {
     public SignupResponse registerUser(SignupRequest request) {
         // 이메일 중복 체크
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            //throw new RuntimeException("Email already exists"); // 500에러로 넘어감
+            throw new ConflictException("Email already exists");  //409에러로 처리
         }
 
         // 전화번호 전처리 (-, 공백 등 제거 후 숫자만 남김)
@@ -271,7 +279,7 @@ public class UserService {
             cleanedPhone = request.getPhone().replaceAll("[^0-9]", "");
             // 전화번호 중복 체크 (전처리된 값 기준)
             if (userRepository.findByPhone(cleanedPhone).isPresent()) {
-                throw new RuntimeException("Phone number already exists");
+                throw new ConflictException("Phone number already exists");
             }
         }
 
@@ -282,7 +290,7 @@ public class UserService {
 
         // 비밀번호 일치 확인
         if (!request.getPassword().equals(request.getPasswordCheck())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+            throw new ConflictException("비밀번호가 일치하지 않습니다.");
         }
 
         // User 생성

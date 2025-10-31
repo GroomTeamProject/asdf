@@ -1,0 +1,62 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:http://order-service:8085}
+              predicates:
+                - Path=/api/orders/**
+            - id: review-service
+              uri: ${REVIEW_SERVICE_URL:http://review-service:8086}
+              predicates:
+                - Path=/api/reviews/**
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://notification-service:8088}
+              predicates:
+                - Path=/api/notifications/**
+            - id: notification-service-sse
+              uri: ${NOTIFICATION_SERVICE_URL:http://notification-service:8088}
+              predicates:
+                - Path=/api/sse/**
+            - id: owner-service
+              uri: ${OWNER_SERVICE_URL:http://owner-service:8081}
+              predicates:
+                - Path=/api/owner/**
+            - id: store-service
+              uri: ${OWNER_SERVICE_URL:http://owner-service:8081}
+              predicates:
+                - Path=/api/stores/**
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://user-service:8082}
+              predicates:
+                - Path=/api/users/**
+            - id: user-service-auth
+              uri: ${USER_SERVICE_URL:http://user-service:8082}
+              predicates:
+                - Path=/api/auth/**
+            - id: delivery-service
+              uri: ${DELIVERY_SERVICE_URL:http://delivery-service:8087}
+              predicates:
+                - Path=/api/deliveries/**
+
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://payment-service:8084}
+              predicates:
+                - Path=/api/payments/**
+
+# Logging
+logging:
+  level:
+    io.goorm.team02.gateway: INFO
+    org.springframework.cloud.gateway: WARN
+    org.springframework.web.reactive: WARN
+    reactor.netty: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"

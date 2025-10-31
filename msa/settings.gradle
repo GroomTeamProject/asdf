@@ -1,0 +1,15 @@
+rootProject.name = 'team02backend'
+
+include 'libs:common'
+include 'libs:security'
+include 'libs:kafka-client'
+include 'libs:dto'
+
+include 'gateway'
+include 'user-service'
+include 'owner-service'
+include 'order-service'
+include 'review-service'
+include 'payment-service'
+include 'notification-service'
+include 'delivery-service'

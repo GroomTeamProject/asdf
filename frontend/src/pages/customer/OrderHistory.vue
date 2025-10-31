@@ -112,7 +112,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { customerApi } from '@/api/customer/customerApi.js'
+import { orderService } from '@/services/customer/orderService.js'
 import OrderStatusBadge from '@/components/customer/order/OrderStatusBadge.vue'
 
 export default {
@@ -137,10 +137,9 @@ export default {
           loading.value = true
         }
         
-        // 사용자의 주문 내역 조회
-        console.log(`📄 페이지 ${page} 요청 중...`)
-        const response = await customerApi.getMyOrders(page, 20)
-        console.log('📄 응답 데이터:', response)
+        // Service를 통해 주문 내역 조회
+        const result = await orderService.getMyOrders(page, 20)
+        const response = result.data
         
         // 페이지네이션 응답 구조에 맞게 수정
         if (response && response.content) {
@@ -149,22 +148,16 @@ export default {
             orders.value = [...orders.value, ...response.content]
           } else {
             // 초기 로드: 새로 설정
-            orders.value = response.content || []
+            orders.value = response.content
           }
           hasMore.value = !response.last // 마지막 페이지가 아니면 더보기 버튼 표시
-          currentPage.value = response.pageable?.pageNumber || 0
+          currentPage.value = response.pageable?.pageNumber
         } else {
-          if (!append) {
-            orders.value = []
-          }
           hasMore.value = false
         }
       } catch (error) {
         console.error('주문 내역 조회 실패:', error)
-        if (!append) {
-          orders.value = []
-        }
-        hasMore.value = false
+        throw error
       } finally {
         loading.value = false
         loadingMore.value = false

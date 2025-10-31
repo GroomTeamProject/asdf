@@ -1,11 +1,8 @@
 <template>
   <!-- 헤더 배너 -->
-  <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-    <div class="max-w-2xl mx-auto">
-      <h1 class="text-2xl font-bold mb-2">주문 완료</h1>
-      <p class="text-blue-100">주문이 성공적으로 접수되었습니다</p>
-    </div>
-  </div>
+  <HeaderBanner 
+    title="주문 완료"
+  />
 
   <!-- 페이지 컨테이너 -->
   <CustomerContainer max-width="2xl" padding="4" custom-class="space-y-6">
@@ -141,12 +138,15 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/customer/cart'
+import { orderService } from '@/services/customer/orderService'
 import CustomerContainer from '@/components/customer/CustomerContainer.vue'
+import HeaderBanner from '@/components/common/HeaderBanner.vue'
 
 export default {
   name: 'OrderComplete',
   components: {
     CustomerContainer,
+    HeaderBanner,
   },
   setup() {
     const route = useRoute()
@@ -172,32 +172,29 @@ export default {
     }
 
     // 페이지 로드 시 주문 정보 설정
-    onMounted(() => {
-      // route query에서 주문 정보 가져오기
-      if (route.query.orderNumber) {
-        orderNumber.value = route.query.orderNumber
-        totalAmount.value = parseInt(route.query.totalAmount) || 0
-        
-        // 가게명 우선순위: 장바구니 > query > fallback
-        if (cartStore.items.length > 0) {
-          storeName.value = cartStore.items[0]?.storeName || cartStore.items[0]?.storeInfo?.name || route.query.storeName || '알 수 없는 가게'
+    onMounted(async () => {
+      try {
+        // route query에서 주문 정보 가져오기
+        if (route.query.orderNumber) {
+          // 서버로부터 받은 실제 데이터 사용
+          orderNumber.value = route.query.orderNumber
+          totalAmount.value = parseInt(route.query.totalAmount) || 0
+          storeName.value = route.query.storeName
+          deliveryAddress.value = route.query.deliveryAddress
+          phoneNumber.value = route.query.phoneNumber
+          
+          // 현재 시간으로 주문 시간 설정
+          orderTime.value = new Date().toLocaleString('ko-KR')
+          estimatedDeliveryTime.value = '약 30분 후'
         } else {
-          storeName.value = route.query.storeName || '알 수 없는 가게'
+          // 주문 번호가 없으면 에러 처리
+          console.error('주문 번호가 없습니다.')
+          router.push('/customer/stores')
         }
-        
-        deliveryAddress.value = route.query.deliveryAddress || '주소 정보 없음'
-        phoneNumber.value = route.query.phoneNumber || '연락처 정보 없음'
-      } else {
-        // fallback: 임시 데이터
-        orderNumber.value = 'ORD-' + Date.now().toString().slice(-6)
-        totalAmount.value = 25000
-        storeName.value = '맛있는 치킨집'
-        deliveryAddress.value = '서울시 강남구 테헤란로 123'
-        phoneNumber.value = '010-1234-5678'
+      } catch (error) {
+        console.error('주문 완료 정보 처리 실패:', error)
+        router.push('/customer/stores')
       }
-      
-      orderTime.value = new Date().toLocaleString('ko-KR')
-      estimatedDeliveryTime.value = '약 30분 후'
     })
 
     return {

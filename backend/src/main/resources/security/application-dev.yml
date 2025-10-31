@@ -26,5 +26,5 @@ cloud:
       auto: false
 
 jwt:
-  secret: ${JWT_SECRET_DEV}
+  secret: ${JWT_SECRET}
   expiration: 3600000

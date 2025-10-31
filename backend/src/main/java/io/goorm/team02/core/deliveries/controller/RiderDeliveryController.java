@@ -1,93 +1,115 @@
-// src/main/java/io/goorm/team02/core/deliveries/controller/RiderDeliveryController.java
 package io.goorm.team02.core.deliveries.controller;
 
-import io.goorm.team02.core.deliveries.controller.dto.*;
+
+import io.goorm.team02.core.auth.security.SecurityUtils;
+import io.goorm.team02.core.deliveries.controller.dto.AcceptRequest;
+import io.goorm.team02.core.deliveries.controller.dto.ApiResponse;
+import io.goorm.team02.core.deliveries.controller.dto.DeliveryResponse;
 import io.goorm.team02.core.deliveries.domain.Delivery;
 import io.goorm.team02.core.deliveries.domain.enums.DeliveryStatus;
-import io.goorm.team02.core.deliveries.service.DeliveryQueryService;
+import io.goorm.team02.core.deliveries.service.RiderDeliveryHistoryService;
 import io.goorm.team02.core.deliveries.service.RiderDeliveryService;
+import io.goorm.team02.core.deliveries.service.RiderQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import io.goorm.team02.core.deliveries.controller.dto.DeliveryListResponse;
-import io.goorm.team02.core.deliveries.controller.dto.DeliveryResponse;
-import static org.springframework.data.domain.Sort.Direction.DESC;
 
+import java.util.List;
 
+@Slf4j
 @RestController
-@RequestMapping("/api/rider/deliveries")
 @RequiredArgsConstructor
+@RequestMapping("/api/rider")
 public class RiderDeliveryController {
-    private final RiderDeliveryService cmd;
-    private final DeliveryQueryService qry;
+    private final RiderDeliveryService riderDeliveryService;
+    private final RiderQueryService riderQueryService;
+    private final RiderDeliveryHistoryService riderDeliveryHistoryService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<DeliveryListResponse<DeliveryResponse>>> list(
-            @PageableDefault(size=20, sort="id", direction=DESC) Pageable pageable) {
-        var page = qry.listRequested(pageable);
-        var body = DeliveryListResponse.of(page.map(DeliveryResponse::of));
-        return ResponseEntity.ok(ApiResponse.ok(body));
+    @PostMapping("/{order_id}/accept")
+    public ResponseEntity<ApiResponse<DeliveryResponse>> accept(@PathVariable Long order_id, @RequestBody @Valid AcceptRequest acceptRequest) {
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        if(real_rider_id.equals(acceptRequest.riderId())) {
+            var d = riderDeliveryService.accept(order_id,acceptRequest.riderId());
+            return ResponseEntity.status(201).body(ApiResponse.ok(DeliveryResponse.of(d)));
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail("권한이 없습니다."));
     }
 
-    @PostMapping("/{id}/accept")
-    public ResponseEntity<ApiResponse<DeliveryResponse>> accept(@PathVariable Long id, @RequestBody @Valid AcceptRequest req){
-        var d = cmd.accept(id, req.riderId());
-        return ResponseEntity.status(201).body(ApiResponse.ok(DeliveryResponse.of(d)));
+    @PutMapping("/{order_id}/pickup")
+    public ResponseEntity<ApiResponse<DeliveryResponse>> pickup(@PathVariable Long order_id){
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        var d = riderDeliveryService.pickup(real_rider_id);
+        return ResponseEntity.ok(ApiResponse.ok(DeliveryResponse.of(d)));
     }
 
-    @PostMapping("/{id}/reject")
-    public ResponseEntity<ApiResponse<DeliveryResponse>> reject(@PathVariable Long id, @RequestBody @Valid RejectRequest req){
-        return ResponseEntity.ok(ApiResponse.ok(DeliveryResponse.of(cmd.reject(id, req.riderId(), req.reason()))));
+    @PutMapping("/{order_id}/complete")
+    public ResponseEntity<ApiResponse<DeliveryResponse>> complete(@PathVariable Long order_id){
+
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        var d = riderDeliveryService.complete(real_rider_id);
+        return ResponseEntity.ok(ApiResponse.ok(DeliveryResponse.of(d)));
     }
 
-    @PutMapping("/{id}/pickup")
-    public ResponseEntity<ApiResponse<DeliveryResponse>> pickup(@PathVariable Long id){
-        return ResponseEntity.ok(ApiResponse.ok(DeliveryResponse.of(cmd.pickup(id))));
+    @GetMapping("/{rider_id}/today-count")
+    public ResponseEntity<Long> getTodayCount(@PathVariable Long rider_id) {
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        if(real_rider_id.equals(rider_id)) {
+            Long count = riderQueryService.getTodayCount(rider_id);
+            return ResponseEntity.ok(count);
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
-    @PutMapping("/{id}/complete")
-    public ResponseEntity<ApiResponse<DeliveryResponse>> complete(@PathVariable Long id){
-        return ResponseEntity.ok(ApiResponse.ok(DeliveryResponse.of(cmd.complete(id))));
+    @GetMapping("/{rider_id}/today-income")
+    public ResponseEntity<Long> getTodayIncome(@PathVariable Long rider_id) {
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        if(real_rider_id.equals(rider_id)) {
+            Long income =  riderQueryService.getTodayIncome(rider_id);
+            return ResponseEntity.ok(income);
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
-    /**
-     * 특정 라이더의 오늘(자정 기준) 완료된 배달 수익 합계를 조회한다.
-     *
-     * @param riderId 라이더 ID
-     * @return 오늘 완료된 배달들의 배달 수수료 합계 (없으면 0)
-     */
-    @GetMapping("/{riderId}/today-earnings")
-    public ResponseEntity<Long> getTodayEarnings(@PathVariable Long riderId) {
-        Long earnings = qry.getTodayDeliveredFee(riderId);
-        return ResponseEntity.ok(earnings);
+    @GetMapping("/{rider_id}/today-avg")
+    public ResponseEntity<Long> getTodayAvgMinutes(@PathVariable Long rider_id) {
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        if(real_rider_id.equals(rider_id)) {
+            Long avg = riderQueryService.getTodayAvgMinutes(rider_id);
+            return ResponseEntity.ok(avg);
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
+    @GetMapping("/{rider_id}/currentDelivery")
+    public ResponseEntity<DeliveryResponse> getCurrentDelivery(@PathVariable Long rider_id) {
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        if(real_rider_id.equals(rider_id)) {
+            Delivery d =  riderQueryService.getCurrentDelivery(rider_id);
+            return ResponseEntity.ok(d == null ? null : DeliveryResponse.of(d));
 
-    @GetMapping("/{riderId}/count")
-    public ResponseEntity<Long> getCountByRiderId(@PathVariable Long riderId) {
-        Long count = qry.countByRiderId(riderId);
-        return ResponseEntity.ok(count);
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
-    @GetMapping("/{riderId}/avg")
-    public ResponseEntity<Long> getAvgByRiderId(@PathVariable Long riderId) {
-        Long avg = qry.AvgByRiderId(riderId);
-        return ResponseEntity.ok(avg);
+    @GetMapping("/{rider_id}/status")
+    public ResponseEntity<DeliveryStatus> getStatus(@PathVariable Long rider_id) {
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        if(real_rider_id.equals(rider_id)) {
+            Delivery currentDelivery = riderQueryService.getCurrentDelivery(rider_id);
+            return ResponseEntity.ok(currentDelivery != null ? currentDelivery.getStatus() : null); // 200 + null
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
-    @GetMapping("/{riderId}/status")
-    public ResponseEntity<DeliveryStatus> getStatusByRiderId(@PathVariable Long riderId) {
-        return ResponseEntity.ok(qry.getRiderStatus(riderId));
-    }
-
-    @GetMapping("/{riderId}/currentDelivery")
-    public ResponseEntity<DeliveryResponse> getCurrentDelivery(@PathVariable Long riderId) {
-        return ResponseEntity.of(
-                qry.getDeliveryByRiderId(riderId).map(DeliveryResponse::of)
-        );
+    @GetMapping("/{rider_id}/history")
+    public ResponseEntity<List<DeliveryResponse>> getHistory(@PathVariable Long rider_id) {
+        var real_rider_id = SecurityUtils.getCurrentUserId();
+        if(real_rider_id.equals(rider_id)) {
+            return ResponseEntity.ok(riderDeliveryHistoryService.getDeliveries(rider_id));
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 }

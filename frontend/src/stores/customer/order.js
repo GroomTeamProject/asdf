@@ -6,7 +6,7 @@ export const useOrderStore = defineStore('order', () => {
   const deliveryAddress = ref('')
   const deliveryDetailAddress = ref('')
   const phoneNumber = ref('')
-  const estimatedDeliveryTime = ref('약 30분 후')
+  const estimatedDeliveryTime = ref('!약 30분 후')
 
   // 요청사항
   const customMemo = ref('')

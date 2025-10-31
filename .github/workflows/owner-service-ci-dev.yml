@@ -1,0 +1,73 @@
+name: Owner Service CI - Build & Test
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - "msa/owner-service/**"
+      - "msa/libs/**"
+      - ".github/workflows/**"
+
+env:
+  REGISTRY: docker.io
+  SERVICE_NAME: owner-service
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ env.SERVICE_NAME }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ env.SERVICE_NAME }}-
+            ${{ runner.os }}-gradle-
+
+      - name: Build & Test ${{ env.SERVICE_NAME }}
+        run: |
+          cd msa/${{ env.SERVICE_NAME }}
+          ../gradlew :${{ env.SERVICE_NAME }}:build
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.SERVICE_NAME }}-test-report
+          path: msa/${{ env.SERVICE_NAME }}/build/reports/tests/test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./msa/${{ env.SERVICE_NAME }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-${{ env.SERVICE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-${{ env.SERVICE_NAME }}:latest
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/team02-${{ env.SERVICE_NAME }}:latest
+            type=gha
+          cache-to: type=gha,mode=max

@@ -2,6 +2,7 @@ package io.goorm.team02.core.orders.domain;
 
 import io.goorm.team02.core.menus.domain.Menu;
 import io.goorm.team02.core.TestEnv;
+import io.goorm.team02.core.orders.controller.dto.OrderRequest;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,8 +11,10 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("OrderItem 도메인 테스트")
 class OrderItemTest extends TestEnv {
@@ -191,5 +194,93 @@ class OrderItemTest extends TestEnv {
         // then
         assertThat(createdItem.getQuantity()).isEqualTo(0);
         assertThat(createdItem.getTotalPrice()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("calculateOptionPrice - 빈 옵션 리스트")
+    void calculateOptionPriceWithEmptyList() {
+        // given
+        orderItem.setMenuPrice(new BigDecimal("18000.00"));
+        orderItem.setQuantity(2);
+        orderItem.setOptions(new ArrayList<>());
+
+        // when
+        orderItem.calculateTotalPrice();
+
+        // then
+        assertThat(orderItem.getTotalPrice()).isEqualTo(new BigDecimal("36000.00"));
+    }
+
+    @Test
+    @DisplayName("calculateOptionPrice - null 옵션 리스트")
+    void calculateOptionPriceWithNullList() {
+        // given
+        orderItem.setMenuPrice(new BigDecimal("18000.00"));
+        orderItem.setQuantity(2);
+        orderItem.setOptions(null);
+
+        // when
+        orderItem.calculateTotalPrice();
+
+        // then
+        assertThat(orderItem.getTotalPrice()).isEqualTo(new BigDecimal("36000.00"));
+    }
+
+    @Test
+    @DisplayName("create - OrderRequest와 함께 생성하는 팩토리 메서드")
+    void createWithOrderRequest() {
+        // given
+        OrderRequest.OrderItemRequest itemRequest = new OrderRequest.OrderItemRequest(
+                1L, 2, List.of(
+                        new OrderRequest.OrderItemOptionRequest("사이즈", "대", new BigDecimal("2000.00"))
+                )
+        );
+        Map<Long, Menu> menuMap = Map.of(1L, menu);
+
+        // when
+        List<OrderItem> orderItems = OrderItem.create(order, List.of(itemRequest), menuMap);
+
+        // then
+        assertThat(orderItems).hasSize(1);
+        OrderItem createdItem = orderItems.get(0);
+        assertThat(createdItem.getOrder()).isEqualTo(order);
+        assertThat(createdItem.getMenu()).isEqualTo(menu);
+        assertThat(createdItem.getMenuName()).isEqualTo("후라이드 치킨");
+        assertThat(createdItem.getMenuPrice()).isEqualTo(new BigDecimal("18000.00"));
+        assertThat(createdItem.getQuantity()).isEqualTo(2);
+        assertThat(createdItem.getOptions()).hasSize(1);
+        assertThat(createdItem.getTotalPrice()).isEqualTo(new BigDecimal("40000.00")); // (18000 * 2) + (2000 * 2)
+    }
+
+    @Test
+    @DisplayName("create - OrderRequest에서 존재하지 않는 메뉴 ID")
+    void createWithOrderRequest_NonExistentMenu() {
+        // given
+        OrderRequest.OrderItemRequest itemRequest = new OrderRequest.OrderItemRequest(
+                999L, 2, List.of()
+        );
+        Map<Long, Menu> menuMap = Map.of(1L, menu);
+
+        // when & then
+        assertThatThrownBy(() -> OrderItem.create(order, List.of(itemRequest), menuMap))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("메뉴를 찾을 수 없습니다: 999");
+    }
+
+    @Test
+    @DisplayName("create - OrderRequest에서 null 옵션 리스트")
+    void createWithOrderRequest_NullOptions() {
+        // given
+        OrderRequest.OrderItemRequest itemRequest = new OrderRequest.OrderItemRequest(
+                1L, 2, null
+        );
+        Map<Long, Menu> menuMap = Map.of(1L, menu);
+
+        // when
+        List<OrderItem> orderItems = OrderItem.create(order, List.of(itemRequest), menuMap);
+
+        // then
+        assertThat(orderItems).hasSize(1);
+        assertThat(orderItems.get(0).getOptions()).isEmpty();
     }
 }

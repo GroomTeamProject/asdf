@@ -1,0 +1,37 @@
+allprojects {
+    group = 'io.goorm.team02'
+    version = '0.0.1-SNAPSHOT'
+    
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+    
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+    
+    dependencies {
+        // Spring Boot
+        implementation 'org.springframework.boot:spring-boot-starter:3.5.5'
+        
+        // Lombok
+        compileOnly 'org.projectlombok:lombok:1.18.30'
+        annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    }
+    
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+}

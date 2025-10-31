@@ -48,12 +48,24 @@ export const orderApi = {
   }),
 
   // 주문 목록 조회 (가게별)
-  getOrders: (storeId) => orderApiManager.queueRequest(async () => {
-    console.log('🔄 주문 목록 조회 중..., 가게 ID:', storeId);
-    const response = await api.get(`/orders?storeId=${storeId}`);
-    console.log('✅ 주문 목록 조회 성공');
-    return response.data;
-  }),
+getOrders: (storeId, ownerUserId, status = '', customerUserId = null) => orderApiManager.queueRequest(async () => {
+  console.log('🔄 주문 목록 조회:', { storeId, ownerUserId, status, customerUserId });
+  
+  const params = new URLSearchParams();
+  
+  // 페이지네이션
+  params.append('storeId', storeId.toString());
+  params.append('userId', ownerUserId.toString()); // 인증용 DTO 필드
+  params.append('page', '0');
+  params.append('size', '20');
+  //params.append('userId', ownerUserId.toString()); // DTO의 userId 필드로 전달
+
+  const url = `/orders?${params.toString()}`;
+  console.log('📡 요청 URL:', url);
+  
+  const response = await api.get(url);
+  return response.data;
+}),
 
   // 주문 상세 조회
   getOrderDetail: (orderId) => orderApiManager.queueRequest(async () => {

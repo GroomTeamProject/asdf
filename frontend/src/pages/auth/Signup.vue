@@ -118,8 +118,17 @@ export default {
         alert('회원가입 성공!')
         this.$router.push('/login')
       } catch (error) {
-        console.error('회원가입 실패:', error.response ? error.response.data : error.message)
-        alert('회원가입 실패! 콘솔 확인')
+        console.error(
+          "회원가입 실패:",
+          error.response ? error.response.data : error.message
+        );
+
+        // 백엔드에서 내려주는 메시지가 있으면 표시
+        if (error.response && error.response.data && error.response.data.message) {
+          alert("회원가입 실패: " + error.response.data.message);
+        } else {
+          alert("회원가입 실패: 알 수 없는 오류가 발생했습니다.");
+        }
       }
     }
   }
